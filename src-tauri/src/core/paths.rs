@@ -31,13 +31,40 @@ struct BootstrapConfig {
     kernels_dir: Option<String>,
 }
 
+/// 便携版标记文件：和 exe 放在同一目录时，所有数据都放在这个目录下
+const PORTABLE_MARKER_FILENAME: &str = "portable.flag";
+
+/// 便携版：exe 所在目录里有标记文件，就把它当作根目录
+fn portable_root_in(exe_dir: &Path) -> Option<PathBuf> {
+    exe_dir.join(PORTABLE_MARKER_FILENAME).is_file().then(|| exe_dir.to_path_buf())
+}
+
 /// 路径管理器
 pub struct PathManager;
 
 impl PathManager {
+    /// 当前是否为便携版（所有数据放在 exe 所在目录）
+    pub fn is_portable() -> bool {
+        Self::portable_root().is_some()
+    }
+
+    /// 进程启动后就不变了（标记文件中途加上不会生效），所以只查一次，不在每次取路径时访问磁盘
+    fn portable_root() -> Option<PathBuf> {
+        static PORTABLE_ROOT: std::sync::OnceLock<Option<PathBuf>> = std::sync::OnceLock::new();
+        PORTABLE_ROOT
+            .get_or_init(|| {
+                let exe = std::env::current_exe().ok()?;
+                portable_root_in(exe.parent()?)
+            })
+            .clone()
+    }
+
     /// 默认根目录（不受 bootstrap 影响）
     pub fn get_default_root_dir() -> Result<PathBuf> {
         if let Some(root) = Self::environment_root(std::env::var_os("MZ_ROOT_DIR"))? {
+            return Ok(root);
+        }
+        if let Some(root) = Self::portable_root() {
             return Ok(root);
         }
         let base_dirs = BaseDirs::new().ok_or_else(|| anyhow!("无法获取系统基础目录"))?;
@@ -290,7 +317,8 @@ impl PathManager {
 
     pub fn sync_runtime_paths_registry(app: &tauri::AppHandle) -> Result<()> {
         // An isolated development run must not overwrite the installed app's registry paths.
-        if std::env::var_os("MZ_ROOT_DIR").is_some() {
+        // 便携版也不写：注册表记的是安装版的目录，便携版在别处运行会把它覆盖掉
+        if std::env::var_os("MZ_ROOT_DIR").is_some() || Self::is_portable() {
             return Ok(());
         }
         #[cfg(target_os = "windows")]
@@ -394,7 +422,18 @@ impl BootstrapConfig {
 
 #[cfg(test)]
 mod tests {
-    use super::PathManager;
+    use super::{PORTABLE_MARKER_FILENAME, PathManager, portable_root_in};
+    use std::fs;
+
+    #[test]
+    fn a_marker_next_to_the_exe_makes_the_install_portable() {
+        let dir = std::env::temp_dir().join(format!("mz-portable-test-{}", uuid::Uuid::new_v4()));
+        fs::create_dir_all(&dir).unwrap();
+        assert!(portable_root_in(&dir).is_none());
+        fs::write(dir.join(PORTABLE_MARKER_FILENAME), b"").unwrap();
+        assert_eq!(portable_root_in(&dir), Some(dir.clone()));
+        fs::remove_dir_all(&dir).unwrap();
+    }
 
     #[test]
     fn environment_root_requires_an_absolute_path() {

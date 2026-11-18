@@ -109,12 +109,12 @@ pub struct ProxyMutationOutput {
     pub data: Option<Value>,
 }
 
-struct ListProxiesTool;
-struct GetProxyTool;
-struct CreateProxyTool;
-struct UpdateProxyTool;
-struct DeleteProxyTool;
-struct BatchDeleteProxiesTool;
+pub(crate) struct ListProxiesTool;
+pub(crate) struct GetProxyTool;
+pub(crate) struct CreateProxyTool;
+pub(crate) struct UpdateProxyTool;
+pub(crate) struct DeleteProxyTool;
+pub(crate) struct BatchDeleteProxiesTool;
 
 impl ToolBase for ListProxiesTool {
     type Parameter = ListProxiesInput;

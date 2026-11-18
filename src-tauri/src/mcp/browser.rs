@@ -20,7 +20,7 @@ pub(crate) async fn read_page(
         .try_acquire_owned()
         .map_err(|_| McpToolError::upstream("Browser read capacity reached; retry later"))?;
     if !service.config().access.page_tools_enabled {
-        return Err(McpToolError::invalid_params("Page tools are disabled"));
+        return Err(McpToolError::forbidden("Page tools are disabled"));
     }
     let origins = ANY_SITE;
     let endpoint = service

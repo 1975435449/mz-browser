@@ -18,7 +18,7 @@
 
 ## 简介
 
-MZ指纹浏览器是一款运行在你自己电脑上的桌面软件，用来创建、运行和管理大量相互隔离的浏览器环境。每个环境有自己的数据目录、代理、指纹和账号，并可以用 RPA 任务流或 AI（MCP）自动操作。
+MZ指纹浏览器是一款运行在你自己电脑上的桌面软件，用来创建、运行和管理大量相互隔离的浏览器环境。每个环境有自己的数据目录、代理、指纹和账号，并可以用 RPA 任务流，或通过本机 HTTP 接口交给脚本和 AI 自动操作。
 
 数据默认只保存在本机。没有账号体系、没有云端服务、没有环境数量限制，打开就能用。
 
@@ -89,9 +89,9 @@ MZ指纹浏览器是一款运行在你自己电脑上的桌面软件，用来创
 
 选择一个主控窗口，把操作同步到其他正在运行的窗口。
 
-### AI 接入（MCP）
+### HTTP 接口
 
-内置本地 Model Context Protocol 服务（默认关闭，仅监听 `127.0.0.1`，需要访问密钥），让外部 AI 客户端使用你的环境。权限分档，由你逐项开启：
+内置本地 HTTP 接口（默认关闭，仅监听 `127.0.0.1`，需要访问令牌）。脚本和 AI Agent 经过授权后，可以管理环境、读取页面、点击和填写。权限分档，由你逐项开启：
 
 | 权限档 | 能做什么 |
 | --- | --- |
@@ -101,7 +101,125 @@ MZ指纹浏览器是一款运行在你自己电脑上的桌面软件，用来创
 | 完全页面访问 | 读取和填写输入框、密码框；允许 RPA 脚本和上传步骤 |
 | 管理 | 管理环境、分组、代理、标签、内核和 RPA 任务 |
 
-运行 RPA 任务要求页面操作权限，且任务绑定的环境都已授权。在本机执行的脚本不能通过 MCP 使用。
+运行 RPA 任务要求页面操作权限，且任务绑定的环境都已授权。在本机执行的脚本步骤不能通过 HTTP 接口运行。
+
+**开启步骤**
+
+1. 打开「API & AI」页面，开启 HTTP 接口。默认端口 `37110`，只监听 `127.0.0.1`。
+2. 按需要开启权限档位（见下面的接口表），并在授权环境里勾选允许操作的环境。
+3. （可选）勾选「启动软件时自动开启 HTTP 接口」，之后每次打开软件，HTTP 接口都会自动可用。
+4. 复制访问令牌。令牌可以在页面里轮换，轮换后旧令牌立即失效。
+
+**基本规则**
+
+- 地址是 `http://127.0.0.1:37110`，端口固定，不能修改。也可以用 `localhost:37110`。
+- 每个请求都要带 `Authorization: Bearer <访问令牌>`，缺少或错误返回 401。
+- 请求体是 JSON 对象，最大 64 KB；读取请求体超过 5 秒会被中断。工具调用本身不设时限，启动环境可能需要较长时间。
+- 带 `Origin` 头的请求（浏览器发出的跨站请求）一律拒绝，`Host` 只能是 `127.0.0.1:37110` 或 `localhost:37110`。
+
+**接口**
+
+| 方法 | 路径 | 作用 |
+| --- | --- | --- |
+| GET | `/api/v1/tools` | 列出当前权限下可用的接口，并返回给 AI 的使用须知 `instructions` |
+| POST | `/api/v1/tools/{名称}` | 调用接口，请求体是参数（JSON 对象） |
+
+可用接口按权限档位分组。没开的档位，它的接口不会出现在列表里，调用返回 403。页面相关的接口只对已授权、正在运行的环境有效。
+
+| 权限档 | 名称 | 参数 | 作用 |
+| --- | --- | --- | --- |
+| 基础 | `mz_list_authorized_environments` | 无 | 列出已授权的环境 |
+| 基础 | `mz_get_authorized_environment_status` | `env_uuid` | 查看已授权环境的运行状态 |
+| 页面读取 | `mz_browser_tabs` | `env_uuid` | 列出环境里打开的网页，得到每个页面的 `page_id` |
+| 页面读取 | `mz_browser_snapshot` | `env_uuid`、`page_id` | 读取页面结构快照：每个元素有一个 `id`，以及角色、名称、可见文字。输入框的值和密码不显示 |
+| 页面操作 | `mz_browser_navigate` | `env_uuid`、`page_id`、`url` | 在这个页面打开网址 |
+| 页面操作 | `mz_browser_open_tab` | `env_uuid`、`url` | 新开一个标签打开网址 |
+| 页面操作 | `mz_browser_click` | `env_uuid`、`page_id`、`node_id` | 点击快照里的元素 |
+| 页面操作 | `mz_browser_type` | `env_uuid`、`page_id`、`node_id`、`text`，可选 `clear`、`submit` | 在输入框里输入文字（1 到 2000 字）。`clear` 先清空，`submit` 输入后按回车。密码框需要完全页面访问 |
+| 页面操作 | `mz_browser_press_key` | `env_uuid`、`page_id`、`key` | 按键：Enter、Tab、Escape、Backspace、Delete、方向键、PageUp、PageDown、Home、End |
+| 完全页面访问 | `mz_browser_read_field` | `env_uuid`、`page_id`、`node_id` | 读取输入框或密码框里的实际内容 |
+| 管理 | `mz_list_environments` | `page`、`page_size`、`keyword`、`group_uuid`、`tag_uuids`，均可选 | 列出全部环境，支持分页和搜索 |
+| 管理 | `mz_get_environment` | `env_uuid` | 查看环境详情 |
+| 管理 | `mz_get_environment_status` | `env_uuid` | 查看运行状态 |
+| 管理 | `mz_start_environment` | `env_uuid` | 启动环境 |
+| 管理 | `mz_stop_environment` | `env_uuid` | 停止环境 |
+| 管理 | `mz_batch_start_environments` | `env_uuids`（数组） | 批量启动 |
+| 管理 | `mz_batch_stop_environments` | `env_uuids`（数组） | 批量停止 |
+| 管理 + 完全页面访问 | `mz_get_environment_cdp_endpoint` | `env_uuid` | 获取 CDP 调试地址，供 Playwright、Puppeteer 等连接（环境需已授权） |
+
+页面操作用的是真实的鼠标键盘事件，不开启 `Runtime.enable`。除了 `mz_browser_read_field` 读取输入框时会读一次它的 `value` 属性，不在页面里执行任何脚本，比 Playwright、Puppeteer 更难被网站发现。
+
+**AI 操作页面的流程**
+
+先把 `GET /api/v1/tools` 返回的 `instructions` 放进 Agent 的系统提示。它说明了页面内容不可信、不要执行页面里的指令、删除前先和用户确认等规则，内容随你开启的档位变化。
+
+1. `mz_start_environment` 启动环境（需要管理权限；也可以在软件里手动打开）。
+2. `mz_browser_tabs` 拿到页面的 `page_id`。
+3. `mz_browser_snapshot` 读取页面，找到要操作的元素的 `id`。
+4. `mz_browser_type` 填写，`mz_browser_click` 点击，`mz_browser_press_key` 按键。
+5. 页面变化后重新取快照，元素 `id` 只在最新的快照里有效。
+6. 需要读出输入框里的实际内容时，用 `mz_browser_read_field`。
+
+例如在登录框里填写邮箱并提交：
+
+```json
+POST /api/v1/tools/mz_browser_type
+{"env_uuid": "<环境 UUID>", "page_id": "<page_id>", "node_id": "<快照里的元素 id>", "text": "me@example.com", "clear": true, "submit": true}
+```
+
+**响应**
+
+成功：`{"ok": true, "data": {...}}`
+
+失败：`{"ok": false, "error": "原因"}`
+
+| 状态码 | 含义 |
+| --- | --- |
+| 200 | 成功 |
+| 400 | 参数错误 |
+| 403 | 没有开启对应的权限，或环境未授权 |
+| 401 | 缺少或错误的访问令牌 |
+| 404 | 接口名不存在 |
+| 500 | 内部错误 |
+
+**示例**
+
+列出环境（`<访问令牌>` 换成你复制的令牌）：
+
+```bash
+curl -X POST http://127.0.0.1:37110/api/v1/tools/mz_list_environments \
+  -H "Authorization: Bearer <访问令牌>" \
+  -H "Content-Type: application/json" \
+  -d '{"page": 1, "page_size": 20}'
+```
+
+启动一个环境：
+
+```bash
+curl -X POST http://127.0.0.1:37110/api/v1/tools/mz_start_environment \
+  -H "Authorization: Bearer <访问令牌>" \
+  -H "Content-Type: application/json" \
+  -d '{"env_uuid": "<环境 UUID>"}'
+```
+
+Python：
+
+```python
+import requests
+
+KEY = "<访问令牌>"
+resp = requests.post(
+    "http://127.0.0.1:37110/api/v1/tools/mz_list_environments",
+    headers={"Authorization": f"Bearer {KEY}"},
+    json={"page": 1, "page_size": 20},
+)
+print(resp.json())
+```
+
+**注意**
+
+- 访问令牌等同于你开启的全部权限，不要发给别人，也不要写进会被分享的文件里。怀疑泄露时，在设置里重新生成。
+- 启动和停止环境会在这台电脑上打开或关闭浏览器窗口。
 
 ## 快速开始
 
@@ -110,6 +228,14 @@ MZ指纹浏览器是一款运行在你自己电脑上的桌面软件，用来创
 运行安装包 `MZ指纹浏览器_x.y.z_x64-setup.exe`，打开后点“创建环境”。首次启动环境时会自动下载所需内核。
 
 系统要求：Windows 10 / 11 x64。
+
+### 便携版
+
+便携版是一个 zip 压缩包，解压到任意可写的目录，运行 `mz-browser.exe` 即可，不需要安装。
+
+- 所有数据（数据库、配置、缓存、内核、日志）都保存在这个目录里，删除整个目录就彻底清除。
+- 便携版不会自动更新，需要手动下载新版本替换。
+- 不要放在 Program Files 之类需要管理员权限的目录里。
 
 ### 从源码运行
 
@@ -147,7 +273,7 @@ pnpm rust:check
 
 MZ指纹浏览器基于 Simprint 团队的 [Simprint](https://github.com/Simprint/simprint) 二次开发并独立维护，内核补丁同样来自 [simprint-browser-kernel](https://github.com/Simprint/simprint-browser-kernel)。感谢原项目开源。
 
-在原项目之上的主要改动：Chromium 155–157 内核和指纹加固、Firefox 内核、WebRTC 经 SOCKS5 转发、默认浏览器、移除用户/团队/工作区/登录/环境配额、重做 RPA 任务流、MCP 分档权限和 RPA 工具、改名和新图标。
+在原项目之上的主要改动：Chromium 155–157 内核和指纹加固、Firefox 内核、WebRTC 经 SOCKS5 转发、默认浏览器、移除用户/团队/工作区/登录/环境配额、重做 RPA 任务流、HTTP 接口（分档权限、页面操作和 RPA 工具）、改名和新图标。
 
 原项目的名称和商标不属于本项目。
 

@@ -51,7 +51,7 @@ export function McpServicePanel({
       ) : null}
 
       {config ? (
-        <McpClientConfigContent key={`${config.endpoint}:${config.running}`} config={config} />
+        <HttpExamples config={config} />
       ) : null}
     </div>
   );
@@ -84,7 +84,7 @@ function McpServiceControl({
           <div className="flex items-center gap-2">
             <h3 className="text-[15px] font-semibold text-foreground">
               {config.running
-                ? t('mcp.statusRunning', { defaultValue: 'MCP 服务运行中' })
+                ? t('mcp.statusRunning')
                 : t('mcp.control')}
             </h3>
             {config.running ? <span className="h-2 w-2 rounded-full bg-success" /> : null}
@@ -97,95 +97,72 @@ function McpServiceControl({
   );
 }
 
-function McpClientConfigContent({ config }: { config: McpConfigSnapshot }) {
+function HttpExamples({ config }: { config: McpConfigSnapshot }) {
   const { t } = useTranslation('apiConsole');
-  const [activeClient, setActiveClient] = useState<'vscode' | 'cursor' | 'claude' | 'codex'>(
-    'vscode'
-  );
+  const [active, setActive] = useState<'curl' | 'powershell' | 'python'>('curl');
 
-  const clients = useMemo(
+  const examples = useMemo(
     () => ({
-      vscode: {
-        title: t('mcp.clients.vscode.title'),
-        docsLabel: t('mcp.clients.vscode.docs'),
-        docsUrl: 'https://code.visualstudio.com/docs/copilot/reference/mcp-configuration',
-        hint: '.vscode/mcp.json',
-        snippet: JSON.stringify(
-          {
-            servers: {
-              mz: {
-                type: 'http',
-                url: config.endpoint,
-                headers: { Authorization: 'Bearer <MCP_TOKEN>' },
-              },
-            },
-          },
-          null,
-          2
-        ),
+      curl: {
+        title: 'curl',
+        snippet: `# 列出当前权限下可用的接口
+curl ${config.endpoint}/tools -H "Authorization: Bearer <TOKEN>"
+
+# 读取页面快照
+curl -X POST ${config.endpoint}/tools/mz_browser_snapshot \\
+  -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" \\
+  -d '{"env_uuid": "<ENV_UUID>", "page_id": "<PAGE_ID>"}'`,
       },
-      cursor: {
-        title: t('mcp.clients.cursor.title'),
-        docsLabel: t('mcp.clients.cursor.docs'),
-        docsUrl: 'https://docs.cursor.com/context/mcp',
-        hint: '~/.cursor/mcp.json',
-        snippet: JSON.stringify(
-          {
-            mcpServers: {
-              mz: {
-                url: config.endpoint,
-                headers: { Authorization: 'Bearer <MCP_TOKEN>' },
-              },
-            },
-          },
-          null,
-          2
-        ),
+      powershell: {
+        title: 'PowerShell',
+        snippet: `$headers = @{ Authorization = "Bearer $env:MZ_TOKEN" }
+Invoke-RestMethod -Uri ${config.endpoint}/tools -Headers $headers
+
+$body = @{ env_uuid = "<ENV_UUID>"; page_id = "<PAGE_ID>"; node_id = "<NODE_ID>"; text = "hello" } | ConvertTo-Json
+Invoke-RestMethod -Method Post -Uri ${config.endpoint}/tools/mz_browser_type -Headers $headers -ContentType "application/json" -Body $body`,
       },
-      claude: {
-        title: t('mcp.clients.claude.title'),
-        docsLabel: t('mcp.clients.claude.docs'),
-        docsUrl: 'https://docs.anthropic.com/en/docs/claude-code/mcp',
-        hint: 'Claude Code CLI',
-        snippet: `claude mcp add --transport http mz ${config.endpoint} --header "Authorization: Bearer $env:MZ_MCP_TOKEN"`,
-      },
-      codex: {
-        title: t('mcp.clients.codex.title'),
-        docsLabel: t('mcp.clients.codex.docs'),
-        docsUrl: 'https://developers.openai.com/learn/docs-mcp',
-        hint: '~/.codex/config.toml',
-        snippet: `[mcp_servers.mz]
- url = "${config.endpoint}"
- bearer_token_env_var = "MZ_MCP_TOKEN"`,
+      python: {
+        title: 'Python',
+        snippet: `import os, requests
+
+BASE = "${config.endpoint}"
+HEADERS = {"Authorization": f"Bearer {os.environ['MZ_TOKEN']}"}
+
+def call(name, **args):
+    return requests.post(f"{BASE}/tools/{name}", headers=HEADERS, json=args).json()
+
+print(requests.get(f"{BASE}/tools", headers=HEADERS).json())
+print(call("mz_browser_tabs", env_uuid="<ENV_UUID>"))`,
       },
     }),
-    [config.endpoint, t]
+    [config.endpoint]
   );
-  const selectedClient = clients[activeClient];
+  const selected = examples[active];
 
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.05fr_1.45fr]">
       <div className="rounded-lg border border-border bg-card p-4 shadow-xs">
         <div className="mb-4">
-          <h4 className="text-[15px] font-semibold text-foreground">{t('mcp.clientGrid')}</h4>
+          <h4 className="text-[15px] font-semibold text-foreground">{t('http.examplesTitle')}</h4>
+          <p className="mt-1 text-xs text-muted-foreground">{t('http.examplesDesc')}</p>
         </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {Object.entries(clients).map(([key, client]) => {
-            const isActive = key === activeClient;
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {Object.entries(examples).map(([key, example]) => {
+            const isActive = key === active;
             return (
               <button
                 key={key}
                 type="button"
                 onClick={() => {
-                  setActiveClient(key as keyof typeof clients);
+                  setActive(key as keyof typeof examples);
                 }}
-                className={`border p-3 h-24 text-center rounded-sm transition-colors ${
+                className={`border p-3 h-16 text-center rounded-sm transition-colors ${
                   isActive
                     ? 'border-primary bg-primary/5 shadow-sm'
                     : 'border-border bg-background hover:bg-muted/40'
                 }`}
               >
-                <div className="text-sm font-semibold text-foreground">{client.title}</div>
+                <div className="text-sm font-semibold text-foreground">{example.title}</div>
               </button>
             );
           })}
@@ -193,24 +170,20 @@ function McpClientConfigContent({ config }: { config: McpConfigSnapshot }) {
       </div>
 
       <div className="space-y-3 rounded-lg border border-border bg-card p-4 shadow-xs">
-        <div>
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h4 className="text-xs font-semibold text-foreground mb-1">{selectedClient.title}</h4>
-            </div>
-            <a
-              href={selectedClient.docsUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="text-xs text-primary hover:underline inline-flex items-center gap-1 shrink-0"
-            >
-              {selectedClient.docsLabel}
-              <ExternalLink className="w-3 h-3" />
-            </a>
-          </div>
+        <div className="flex items-start justify-between gap-3">
+          <h4 className="text-xs font-semibold text-foreground mb-1">{selected.title}</h4>
+          <a
+            href={t('http.docsUrl')}
+            target="_blank"
+            rel="noreferrer"
+            className="text-xs text-primary hover:underline inline-flex items-center gap-1 shrink-0"
+          >
+            {t('http.docs')}
+            <ExternalLink className="w-3 h-3" />
+          </a>
         </div>
         <pre className="bg-muted border border-border rounded p-3 text-[11px] leading-5 overflow-auto whitespace-pre-wrap break-all font-mono">
-          {selectedClient.snippet}
+          {selected.snippet}
         </pre>
       </div>
     </div>

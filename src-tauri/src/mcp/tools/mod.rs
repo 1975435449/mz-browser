@@ -1,5 +1,5 @@
-mod act;
-mod agent;
+pub(crate) mod act;
+pub(crate) mod agent;
 pub mod browser_kernels;
 pub mod environments;
 pub mod environments_extras;

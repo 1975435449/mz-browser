@@ -262,32 +262,32 @@ pub struct ListEnvironmentCookiesOutput {
     pub items: Vec<EnvironmentCookieSummary>,
 }
 
-struct BatchGetEnvironmentsTool;
-struct CreateEnvironmentTool;
-struct UpdateEnvironmentTool;
-struct DeleteEnvironmentTool;
-struct BatchDeleteEnvironmentsTool;
-struct ListRecycleBinEnvironmentsTool;
-struct RestoreEnvironmentTool;
-struct BatchRestoreEnvironmentsTool;
-struct PermanentDeleteEnvironmentTool;
-struct BatchPermanentDeleteEnvironmentsTool;
-struct SetEnvironmentProxyTool;
-struct SetEnvironmentAccountsTool;
-struct AssignEnvironmentTagsTool;
-struct BatchAssignEnvironmentTagsTool;
-struct RemoveEnvironmentTagTool;
-struct BatchRemoveEnvironmentTagsTool;
-struct MoveEnvironmentToGroupTool;
-struct BatchMoveEnvironmentsToGroupTool;
-struct ListEnvironmentUrlsTool;
-struct AddEnvironmentUrlTool;
-struct DeleteEnvironmentUrlTool;
-struct ClearEnvironmentUrlsTool;
-struct ListEnvironmentCookiesTool;
-struct AddEnvironmentCookieTool;
-struct DeleteEnvironmentCookieTool;
-struct ClearEnvironmentCookiesTool;
+pub(crate) struct BatchGetEnvironmentsTool;
+pub(crate) struct CreateEnvironmentTool;
+pub(crate) struct UpdateEnvironmentTool;
+pub(crate) struct DeleteEnvironmentTool;
+pub(crate) struct BatchDeleteEnvironmentsTool;
+pub(crate) struct ListRecycleBinEnvironmentsTool;
+pub(crate) struct RestoreEnvironmentTool;
+pub(crate) struct BatchRestoreEnvironmentsTool;
+pub(crate) struct PermanentDeleteEnvironmentTool;
+pub(crate) struct BatchPermanentDeleteEnvironmentsTool;
+pub(crate) struct SetEnvironmentProxyTool;
+pub(crate) struct SetEnvironmentAccountsTool;
+pub(crate) struct AssignEnvironmentTagsTool;
+pub(crate) struct BatchAssignEnvironmentTagsTool;
+pub(crate) struct RemoveEnvironmentTagTool;
+pub(crate) struct BatchRemoveEnvironmentTagsTool;
+pub(crate) struct MoveEnvironmentToGroupTool;
+pub(crate) struct BatchMoveEnvironmentsToGroupTool;
+pub(crate) struct ListEnvironmentUrlsTool;
+pub(crate) struct AddEnvironmentUrlTool;
+pub(crate) struct DeleteEnvironmentUrlTool;
+pub(crate) struct ClearEnvironmentUrlsTool;
+pub(crate) struct ListEnvironmentCookiesTool;
+pub(crate) struct AddEnvironmentCookieTool;
+pub(crate) struct DeleteEnvironmentCookieTool;
+pub(crate) struct ClearEnvironmentCookiesTool;
 
 macro_rules! environment_uuid_tool {
     ($tool:ident, $input:ty, $output:ty, $name:literal, $description:literal, |$service:ident, $param:ident| $body:block) => {

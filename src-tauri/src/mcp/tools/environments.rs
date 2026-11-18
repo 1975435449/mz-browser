@@ -129,14 +129,14 @@ pub struct EnvironmentCdpEndpointOutput {
     pub browser_ws_url: Option<String>,
 }
 
-struct ListEnvironmentsTool;
-struct GetEnvironmentTool;
-struct StartEnvironmentTool;
-struct StopEnvironmentTool;
-struct BatchStartEnvironmentsTool;
-struct BatchStopEnvironmentsTool;
-struct GetEnvironmentStatusTool;
-struct GetEnvironmentCdpEndpointTool;
+pub(crate) struct ListEnvironmentsTool;
+pub(crate) struct GetEnvironmentTool;
+pub(crate) struct StartEnvironmentTool;
+pub(crate) struct StopEnvironmentTool;
+pub(crate) struct BatchStartEnvironmentsTool;
+pub(crate) struct BatchStopEnvironmentsTool;
+pub(crate) struct GetEnvironmentStatusTool;
+pub(crate) struct GetEnvironmentCdpEndpointTool;
 
 impl ToolBase for ListEnvironmentsTool {
     type Parameter = ListEnvironmentsInput;

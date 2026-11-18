@@ -63,7 +63,7 @@ hex = "0.4.3"
 zip = "2.2.2"
 axum = "0.8.4"
 regex = "1.12.2"
-rmcp = { version = "1.2.0", features = ["server", "macros", "schemars", "transport-streamable-http-server"] }
+rmcp = { version = "1.2.0", features = ["server", "macros", "schemars"] }
 schemars = "1.0"
 tauri-plugin-clipboard-manager = "2.3.2"
 tauri-plugin-store = "2.4.2"

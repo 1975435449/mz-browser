@@ -5,6 +5,7 @@ pub mod cdp;
 mod cdp_act;
 pub mod config;
 pub mod error;
+pub mod http_api;
 pub mod manager;
 pub mod rpa_bridge;
 mod security;

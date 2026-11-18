@@ -64,10 +64,10 @@ pub struct TagMutationOutput {
     pub data: Option<Value>,
 }
 
-struct ListTagsTool;
-struct CreateTagTool;
-struct UpdateTagTool;
-struct DeleteTagTool;
+pub(crate) struct ListTagsTool;
+pub(crate) struct CreateTagTool;
+pub(crate) struct UpdateTagTool;
+pub(crate) struct DeleteTagTool;
 
 impl ToolBase for ListTagsTool {
     type Parameter = ListTagsInput;

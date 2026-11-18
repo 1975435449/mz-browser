@@ -76,7 +76,7 @@ impl McpConfig {
     }
 
     pub fn endpoint(&self) -> String {
-        format!("http://127.0.0.1:{}/mcp", DEFAULT_MCP_PORT)
+        format!("http://127.0.0.1:{}/api/v1", DEFAULT_MCP_PORT)
     }
 
     pub fn health_url(&self) -> String {
@@ -139,7 +139,7 @@ pub struct McpServerRuntimeConfig {
 
 impl McpServerRuntimeConfig {
     pub fn endpoint(&self) -> String {
-        format!("http://127.0.0.1:{}/mcp", self.port)
+        format!("http://127.0.0.1:{}/api/v1", self.port)
     }
 }
 

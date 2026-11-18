@@ -289,7 +289,7 @@ pub async fn read_field(
     node_id: &str,
 ) -> Result<Value, McpToolError> {
     if !conn.full_access() {
-        return Err(invalid("Full page access is disabled"));
+        return Err(McpToolError::forbidden("Full page access is disabled"));
     }
     let (page, session) = attach_authorized(conn, origins, page_id).await?;
     let (node, backend, secret) = find_node(conn, &session, node_id).await?;

@@ -350,7 +350,7 @@ pub struct RunInput {
 
 macro_rules! tool {
     ($tool:ident, $param:ty, $name:literal, $description:literal) => {
-        struct $tool;
+        pub(crate) struct $tool;
         impl ToolBase for $tool {
             type Parameter = $param;
             type Output = ReadOutput;

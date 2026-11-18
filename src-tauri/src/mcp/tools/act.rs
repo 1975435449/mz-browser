@@ -15,12 +15,12 @@ use crate::mcp::{
     server::McpServer,
 };
 
-struct Navigate;
-struct OpenTab;
-struct Click;
-struct Type;
-struct PressKey;
-struct ReadField;
+pub(crate) struct Navigate;
+pub(crate) struct OpenTab;
+pub(crate) struct Click;
+pub(crate) struct Type;
+pub(crate) struct PressKey;
+pub(crate) struct ReadField;
 
 pub fn routes() -> Vec<ToolRoute<McpServer>> {
     ToolRouter::new()

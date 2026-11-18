@@ -3,8 +3,8 @@ export const apiConsoleResources = {
     title: 'API & AI',
     loading: '加载中...',
     errors: {
-      fetchMcpConfig: '获取 MCP 配置失败',
-      updateMcpStatus: '更新 MCP 状态失败',
+      fetchMcpConfig: '获取 HTTP 接口配置失败',
+      updateMcpStatus: '更新 HTTP 接口状态失败',
     },
     confirm: {
       cancel: '取消',
@@ -15,7 +15,7 @@ export const apiConsoleResources = {
       connectionTitle: '访问令牌与启动',
       safetyTitle: '安全提示',
       environmentsTitle: '授权环境',
-      statusRunning: 'MCP 服务运行中',
+      statusRunning: 'HTTP 接口运行中',
       tiers: {
         baseTitle: '基础',
         always: '始终开启',
@@ -31,9 +31,9 @@ export const apiConsoleResources = {
         trust: '需要信任客户端',
         risk: '高风险',
       },
-      accessTitle: 'MCP 认证与最小授权',
+      accessTitle: 'HTTP 接口认证与最小授权',
       accessWarning:
-        '默认不授权任何环境。页面内容会被 AI 客户端读到，请只授权需要的环境、只连接信任的客户端。',
+        '默认不授权任何环境。页面内容会被调用方（脚本或 AI）读到，请只授权需要的环境、只把令牌交给信任的程序。',
       scopeTitle: '功能范围',
       scopeBase: '基础（始终开启）：列出已授权环境、查看运行状态。',
       actPages: '允许操作页面：打开网址、点击、输入文字、按键（不会往密码框输入）',
@@ -42,7 +42,7 @@ export const apiConsoleResources = {
       fullPageAccessWarning: '极度危险：AI 能看到并填写页面里的密码、验证码、银行卡号等一切内容，这些数据会进入模型的上下文。只授权专门用于开发的环境，只连接你自己写的、可信的 Agent。',
       manage: '允许管理环境：创建/修改/启动/停止/删除环境、分组、代理、标签，以及读写 Cookie 和获取调试地址',
       manageWarning: '这一档不受“允许访问的环境”限制，权限等同于完整管理软件。只给你信任的客户端。',
-      autoStart: '启动软件时自动开启 MCP 服务',
+      autoStart: '启动软件时自动开启 HTTP 接口',
       environments: '允许 AI 访问的环境（勾选；没勾选的环境一律拒绝）',
       environmentsSelected: '已选 {{count}} 个',
       environmentsLoading: '正在读取环境列表…',
@@ -55,42 +55,27 @@ export const apiConsoleResources = {
       environmentsNoMatch: '没有匹配的环境',
       readOnlyPages: '允许读取页面：标签页列表和页面结构快照（只读）',
       saveAccess: '保存授权',
-      showToken: '显示凭证',
-      hideToken: '隐藏凭证',
-      rotateToken: '轮换 MCP 凭证',
-      rotateWarning: '旧凭证将失效，服务将停止；请更新客户端凭证后重新启用。',
-      control: 'MCP 服务控制',
-      controlDesc: '启用后会在本机启动 MCP server，供 Cursor、VS Code、Codex 等客户端调用。',
-      clientGrid: '连接客户端',
-      clientGridDesc: '选择一个常用 MCP 客户端，右侧会显示对应的接入示例。',
-      clientConfigDesc:
-        '先配置授权，再把占位符替换为 MCP 凭证。Codex/Claude 示例从环境变量读取；仅接受本机原生客户端。',
-      clients: {
-        vscode: {
-          title: 'VS Code',
-          docs: '查看 VS Code 文档',
-        },
-        cursor: {
-          title: 'Cursor',
-          docs: '查看 Cursor 文档',
-        },
-        claude: {
-          title: 'Claude',
-          docs: '查看 Claude 文档',
-        },
-        codex: {
-          title: 'Codex',
-          docs: '查看 Codex 文档',
-        },
-      },
+      showToken: '显示令牌',
+      hideToken: '隐藏令牌',
+      rotateToken: '轮换访问令牌',
+      rotateWarning: '旧令牌将失效，服务将停止；请更新调用方使用的令牌后重新启用。',
+      control: 'HTTP 接口',
+      controlDesc: '启用后在本机 127.0.0.1 上开放 HTTP 接口，脚本和 AI Agent 带上访问令牌即可调用。',
+    },
+    http: {
+      examplesTitle: '调用示例',
+      examplesDesc:
+        '把 <TOKEN> 换成上面的访问令牌。所有接口都是 POST /api/v1/tools/{名称}，请求体是 JSON 参数；GET /api/v1/tools 列出当前权限下可用的接口。',
+      docs: '完整接口文档',
+      docsUrl: 'https://github.com/mouzhai163/mz-browser/blob/main/README.zh-CN.md#http-接口',
     },
   },
   'en-US': {
     title: 'API & AI',
     loading: 'Loading...',
     errors: {
-      fetchMcpConfig: 'Failed to fetch MCP config',
-      updateMcpStatus: 'Failed to update MCP status',
+      fetchMcpConfig: 'Failed to fetch HTTP API settings',
+      updateMcpStatus: 'Failed to update the HTTP API',
     },
     confirm: {
       cancel: 'Cancel',
@@ -101,7 +86,7 @@ export const apiConsoleResources = {
       connectionTitle: 'Access token and startup',
       safetyTitle: 'Safety notice',
       environmentsTitle: 'Authorized environments',
-      statusRunning: 'MCP service running',
+      statusRunning: 'HTTP API running',
       tiers: {
         baseTitle: 'Basic',
         always: 'Always on',
@@ -117,9 +102,9 @@ export const apiConsoleResources = {
         trust: 'Trusted clients only',
         risk: 'High risk',
       },
-      accessTitle: 'MCP authentication and least privilege',
+      accessTitle: 'HTTP API authentication and least privilege',
       accessWarning:
-        'No environment is authorized by default. AI clients can read page content, so authorize only what is needed and connect only trusted clients.',
+        'No environment is authorized by default. Callers (scripts or AI) can read page content, so authorize only what is needed and give the token only to programs you trust.',
       scopeTitle: 'Capabilities',
       scopeBase: 'Always on: list authorized environments and read their status.',
       actPages: 'Allow page actions: open URLs, click, type, press keys (never into password fields)',
@@ -128,7 +113,7 @@ export const apiConsoleResources = {
       fullPageAccessWarning: 'Extremely dangerous: the AI can see and fill passwords, one-time codes, card numbers and everything else on the page, and that data enters the model context. Authorize only dedicated development environments and connect only your own trusted agent.',
       manage: 'Allow management: create/update/start/stop/delete environments, groups, proxies and tags, read and write cookies, get debugging addresses',
       manageWarning: 'This tier is not limited to the authorized environments and equals full control of the app. Only give it to clients you trust.',
-      autoStart: 'Start the MCP service automatically when the app starts',
+      autoStart: 'Start the HTTP API automatically when the app starts',
       environments: 'Environments the AI may access (tick them; everything else is denied)',
       environmentsSelected: '{{count}} selected',
       environmentsLoading: 'Loading environments…',
@@ -143,35 +128,19 @@ export const apiConsoleResources = {
       saveAccess: 'Save grants',
       showToken: 'Show token',
       hideToken: 'Hide token',
-      rotateToken: 'Rotate MCP token',
+      rotateToken: 'Rotate access token',
       rotateWarning:
-        'The old token will be invalidated and the server stopped. Update your client token before enabling it again.',
-      control: 'MCP Service Control',
+        'The old token stops working and the HTTP API stops. Update the token your programs use before enabling it again.',
+      control: 'HTTP API',
       controlDesc:
-        'After enabling, MZ指纹浏览器 starts a local MCP server for Cursor, VS Code, Codex, and other MCP clients.',
-      clientGrid: 'Client Integrations',
-      clientGridDesc:
-        'Choose a common MCP client on the left and the matching configuration example will be shown on the right.',
-      clientConfigDesc:
-        'Configure grants first. Replace the placeholder with the MCP token. Codex/Claude examples use an environment variable. Native local clients only.',
-      clients: {
-        vscode: {
-          title: 'VS Code',
-          docs: 'VS Code Docs',
-        },
-        cursor: {
-          title: 'Cursor',
-          docs: 'Cursor Docs',
-        },
-        claude: {
-          title: 'Claude',
-          docs: 'Claude Docs',
-        },
-        codex: {
-          title: 'Codex',
-          docs: 'Codex Docs',
-        },
-      },
+        'When enabled, the app serves an HTTP API on 127.0.0.1. Scripts and AI agents call it with the access token.',
+    },
+    http: {
+      examplesTitle: 'Examples',
+      examplesDesc:
+        'Replace <TOKEN> with the access token above. Every tool is POST /api/v1/tools/{name} with JSON arguments; GET /api/v1/tools lists the tools available under the current permissions.',
+      docs: 'Full API reference',
+      docsUrl: 'https://github.com/mouzhai163/mz-browser#http-api',
     },
   },
 } as const;

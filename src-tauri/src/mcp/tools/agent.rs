@@ -23,10 +23,10 @@ pub struct ReadOutput {
     pub data: Value,
 }
 
-struct ListAuthorized;
-struct Status;
-struct Tabs;
-struct Snapshot;
+pub(crate) struct ListAuthorized;
+pub(crate) struct Status;
+pub(crate) struct Tabs;
+pub(crate) struct Snapshot;
 
 pub fn routes(pages: bool) -> Vec<ToolRoute<McpServer>> {
     let mut router = ToolRouter::new()

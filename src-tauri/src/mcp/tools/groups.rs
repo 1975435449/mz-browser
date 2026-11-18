@@ -64,10 +64,10 @@ pub struct GroupMutationOutput {
     pub data: Option<Value>,
 }
 
-struct ListGroupsTool;
-struct CreateGroupTool;
-struct UpdateGroupTool;
-struct DeleteGroupTool;
+pub(crate) struct ListGroupsTool;
+pub(crate) struct CreateGroupTool;
+pub(crate) struct UpdateGroupTool;
+pub(crate) struct DeleteGroupTool;
 
 impl ToolBase for ListGroupsTool {
     type Parameter = ListGroupsInput;

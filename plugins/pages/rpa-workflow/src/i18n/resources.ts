@@ -176,7 +176,7 @@ export const rpaResources = {
       trigger: {
         manual: '手动运行',
         scheduled: '定时运行',
-        mcp: 'MCP 运行',
+        mcp: 'HTTP 接口运行',
       },
     },
     errors: {
@@ -219,8 +219,8 @@ export const rpaResources = {
       configNotAvailable: '这个步骤不需要配置',
       orphanedSteps: '有 {{count}} 个步骤没有连接到流程，已放到末尾并禁用，请检查',
       saved: '已保存',
-      externalReloaded: '任务已被 MCP 修改，已重新加载',
-      externalConflict: '任务已被 MCP 修改。你有未保存的内容，保存会覆盖 MCP 的修改',
+      externalReloaded: '任务已通过 HTTP 接口修改，已重新加载',
+      externalConflict: '任务已通过 HTTP 接口修改。你有未保存的内容，保存会覆盖这些修改',
       savedWithIssues: '已保存，但有 {{count}} 个步骤还没填完，运行前需要补全',
       stepTypes: {
         navigate: '打开网页',
@@ -686,7 +686,7 @@ export const rpaResources = {
       trigger: {
         manual: 'Manual run',
         scheduled: 'Scheduled run',
-        mcp: 'MCP run',
+        mcp: 'HTTP API run',
       },
     },
     errors: {
@@ -729,8 +729,8 @@ export const rpaResources = {
       configNotAvailable: 'This step has no settings',
       orphanedSteps: '{{count}} steps were not connected to the flow. They were moved to the end and disabled. Please review them.',
       saved: 'Saved',
-      externalReloaded: 'The task was changed over MCP and has been reloaded',
-      externalConflict: 'The task was changed over MCP. You have unsaved edits; saving will overwrite the MCP changes',
+      externalReloaded: 'The task was changed through the HTTP API and has been reloaded',
+      externalConflict: 'The task was changed through the HTTP API. You have unsaved edits; saving will overwrite those changes',
       savedWithIssues: 'Saved, but {{count}} steps are incomplete and must be finished before running',
       stepTypes: {
         navigate: 'Open Page',

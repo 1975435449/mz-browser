@@ -51,7 +51,7 @@ pub struct BrowserKernelVersionSummary {
     pub requires_extract: bool,
 }
 
-struct ListBrowserKernelsTool;
+pub(crate) struct ListBrowserKernelsTool;
 
 impl ToolBase for ListBrowserKernelsTool {
     type Parameter = ListBrowserKernelsInput;
