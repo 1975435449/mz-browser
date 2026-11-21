@@ -90,11 +90,20 @@ fn parse_windows_proxy_server(raw: &str) -> Option<(String, String, u16, String)
 }
 
 fn detect_env_system_proxy() -> SystemProxyInfo {
-    for var in ["ALL_PROXY", "all_proxy", "HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy"] {
+    for var in [
+        "ALL_PROXY",
+        "all_proxy",
+        "HTTPS_PROXY",
+        "https_proxy",
+        "HTTP_PROXY",
+        "http_proxy",
+    ] {
         if let Ok(value) = std::env::var(var) {
             let trimmed = value.trim();
             if !trimmed.is_empty() {
-                if let Some((scheme, host, port, display)) = parse_host_port_with_scheme(trimmed, "http") {
+                if let Some((scheme, host, port, display)) =
+                    parse_host_port_with_scheme(trimmed, "http")
+                {
                     return SystemProxyInfo {
                         enabled: true,
                         server: Some(display),
@@ -116,7 +125,10 @@ fn detect_env_system_proxy() -> SystemProxyInfo {
     }
 }
 
-fn parse_host_port_with_scheme(raw: &str, default_scheme: &str) -> Option<(String, String, u16, String)> {
+fn parse_host_port_with_scheme(
+    raw: &str,
+    default_scheme: &str,
+) -> Option<(String, String, u16, String)> {
     let trimmed = raw.trim().trim_end_matches('/');
     let (scheme, rest) = if let Some((s, r)) = trimmed.split_once("://") {
         let s = s.trim().to_ascii_lowercase();

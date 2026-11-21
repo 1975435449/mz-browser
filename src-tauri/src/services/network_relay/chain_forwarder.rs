@@ -236,9 +236,7 @@ async fn handle_http_client(
             }
         };
 
-        client
-            .write_all(b"HTTP/1.1 200 Connection Established\r\n\r\n")
-            .await?;
+        client.write_all(b"HTTP/1.1 200 Connection Established\r\n\r\n").await?;
         let _ = tokio::io::copy_bidirectional(&mut client, &mut remote).await;
         Ok(())
     } else {
@@ -291,12 +289,10 @@ async fn connect_chained(
     let mut tunnel = match pre {
         PreProxy::Socks5 { host, port } => {
             let proxy_addr = format!("{host}:{port}");
-            let stream = Socks5Stream::connect(
-                proxy_addr.as_str(),
-                (target.host.as_str(), target.port),
-            )
-            .await
-            .map_err(|e| io::Error::other(format!("前置 SOCKS5 连接目标代理失败: {e}")))?;
+            let stream =
+                Socks5Stream::connect(proxy_addr.as_str(), (target.host.as_str(), target.port))
+                    .await
+                    .map_err(|e| io::Error::other(format!("前置 SOCKS5 连接目标代理失败: {e}")))?;
             stream.into_inner()
         }
         PreProxy::Http { host, port } => {
@@ -367,10 +363,7 @@ async fn http_connect_handshake(
 
     let text = String::from_utf8_lossy(&resp);
     let status_line = text.lines().next().unwrap_or("");
-    let ok = status_line
-        .split_whitespace()
-        .nth(1)
-        .is_some_and(|code| code.starts_with('2'));
+    let ok = status_line.split_whitespace().nth(1).is_some_and(|code| code.starts_with('2'));
     if !ok {
         return Err(io::Error::other(format!(
             "HTTP CONNECT 代理握手失败: {status_line}"

@@ -21,9 +21,9 @@ use self::core_process::ManagedMihomoCore;
 use self::parser::{build_manual_node, parse_share_links, parse_subscription_content};
 use self::system_proxy::detect_system_proxy;
 use self::types::{
-    AddGroupRequest, AddNodesRequest, AddSubscriptionRequest, DEFAULT_LOCAL_GROUP_ID,
-    NetworkMode, NetworkRelayConfig, NetworkRelayState, RelayDelayResult, RelayGroup,
-    RelayGroupKind, RelayNode, default_local_group,
+    AddGroupRequest, AddNodesRequest, AddSubscriptionRequest, DEFAULT_LOCAL_GROUP_ID, NetworkMode,
+    NetworkRelayConfig, NetworkRelayState, RelayDelayResult, RelayGroup, RelayGroupKind, RelayNode,
+    default_local_group,
 };
 
 const NETWORK_RELAY_STORE_KEY: &str = "network.relay_config";
@@ -45,7 +45,9 @@ impl NetworkRelayManager {
     pub async fn get_state(&self, app: &AppHandle) -> NetworkRelayState {
         let config = load_config(app);
         if config.mode == NetworkMode::Relay && self.core.running_mixed_port().await.is_none() {
-            if let Ok(path) = ManagedMihomoCore::resolve_core_path(config.custom_core_path.as_deref()) {
+            if let Ok(path) =
+                ManagedMihomoCore::resolve_core_path(config.custom_core_path.as_deref())
+            {
                 if path.is_file() {
                     let nodes = collect_all_nodes(&config);
                     let _ = self
@@ -85,7 +87,8 @@ impl NetworkRelayManager {
 
         if mode == NetworkMode::Relay {
             let nodes = collect_all_nodes(&config);
-            let core_path = ManagedMihomoCore::resolve_core_path(config.custom_core_path.as_deref())?;
+            let core_path =
+                ManagedMihomoCore::resolve_core_path(config.custom_core_path.as_deref())?;
             if core_path.is_file() {
                 if let Err(err) = self
                     .core
@@ -129,7 +132,8 @@ impl NetworkRelayManager {
         save_config(app, &config)?;
 
         if config.mode == NetworkMode::Relay {
-            let core_path = ManagedMihomoCore::resolve_core_path(config.custom_core_path.as_deref())?;
+            let core_path =
+                ManagedMihomoCore::resolve_core_path(config.custom_core_path.as_deref())?;
             if core_path.is_file() {
                 if self.core.running_mixed_port().await.is_some() {
                     if self.core.switch_active_node(&node_id).await.is_err() {
@@ -145,11 +149,7 @@ impl NetworkRelayManager {
                 } else {
                     let nodes = collect_all_nodes(&config);
                     self.core
-                        .sync_and_start(
-                            config.custom_core_path.as_deref(),
-                            &nodes,
-                            Some(&node_id),
-                        )
+                        .sync_and_start(config.custom_core_path.as_deref(), &nodes, Some(&node_id))
                         .await?;
                 }
             }
@@ -233,7 +233,9 @@ impl NetworkRelayManager {
             // 尝试按节点名称保持原选中状态
             if config.selected_group_id.as_deref() == Some(group_id.as_str()) {
                 let matched_id = prev_selected_name
-                    .and_then(|name| group.nodes.iter().find(|n| n.name == name).map(|n| n.id.clone()))
+                    .and_then(|name| {
+                        group.nodes.iter().find(|n| n.name == name).map(|n| n.id.clone())
+                    })
                     .or_else(|| group.nodes.first().map(|n| n.id.clone()));
                 config.selected_node_id = matched_id;
             }
@@ -502,7 +504,9 @@ impl NetworkRelayManager {
             NetworkMode::SystemProxy => {
                 let sys = detect_system_proxy();
                 if !sys.enabled {
-                    return Err("当前网络模式为「系统代理」，但未检测到已开启的系统代理".to_string());
+                    return Err(
+                        "当前网络模式为「系统代理」，但未检测到已开启的系统代理".to_string()
+                    );
                 }
                 let host = sys.host.ok_or("系统代理地址无效")?;
                 let port = sys.port.ok_or("系统代理端口无效")?;
@@ -537,14 +541,14 @@ impl NetworkRelayManager {
             }
             NetworkMode::Relay => {
                 if find_selected_node(&config).is_none() {
-                    return Err("当前为「中转节点」模式，请先在代理中心 -> 网络配置中选择一个中转节点".to_string());
+                    return Err(
+                        "当前为「中转节点」模式，请先在代理中心 -> 网络配置中选择一个中转节点"
+                            .to_string(),
+                    );
                 }
                 self.ensure_core_ready(&config).await?;
-                let mixed_port = self
-                    .core
-                    .running_mixed_port()
-                    .await
-                    .ok_or("内置中转内核未运行")?;
+                let mixed_port =
+                    self.core.running_mixed_port().await.ok_or("内置中转内核未运行")?;
 
                 match target_proxy {
                     None => Ok(Some(ProxyConfig {
@@ -619,7 +623,8 @@ impl NetworkRelayManager {
 
     async fn sync_core_if_running(&self, config: &NetworkRelayConfig) {
         if config.mode == NetworkMode::Relay {
-            let core_path = ManagedMihomoCore::resolve_core_path(config.custom_core_path.as_deref());
+            let core_path =
+                ManagedMihomoCore::resolve_core_path(config.custom_core_path.as_deref());
             if let Ok(path) = core_path {
                 if path.is_file() {
                     let nodes = collect_all_nodes(config);
@@ -645,10 +650,7 @@ impl Default for NetworkRelayManager {
 
 fn to_target_proxy(proxy: &ProxyConfig) -> Result<TargetProxy, String> {
     let password = match proxy.password.as_ref() {
-        Some(p) => Some(
-            p.get_plain_password()
-                .map_err(|e| format!("代理密码解密失败: {e}"))?,
-        ),
+        Some(p) => Some(p.get_plain_password().map_err(|e| format!("代理密码解密失败: {e}"))?),
         None => None,
     };
     Ok(TargetProxy {
@@ -661,20 +663,12 @@ fn to_target_proxy(proxy: &ProxyConfig) -> Result<TargetProxy, String> {
 }
 
 fn collect_all_nodes(config: &NetworkRelayConfig) -> Vec<RelayNode> {
-    config
-        .groups
-        .iter()
-        .flat_map(|g| g.nodes.iter().cloned())
-        .collect()
+    config.groups.iter().flat_map(|g| g.nodes.iter().cloned()).collect()
 }
 
 fn find_selected_node(config: &NetworkRelayConfig) -> Option<&RelayNode> {
     let node_id = config.selected_node_id.as_deref()?;
-    config
-        .groups
-        .iter()
-        .flat_map(|g| g.nodes.iter())
-        .find(|n| n.id == node_id)
+    config.groups.iter().flat_map(|g| g.nodes.iter()).find(|n| n.id == node_id)
 }
 
 fn load_config(app: &AppHandle) -> NetworkRelayConfig {
@@ -700,19 +694,13 @@ async fn fetch_subscription_text(url: &str) -> Result<String, String> {
         .build()
         .map_err(|e| format!("构建请求客户端失败: {e}"))?;
 
-    let resp = client
-        .get(url)
-        .send()
-        .await
-        .map_err(|e| format!("拉取订阅链接失败: {e}"))?;
+    let resp = client.get(url).send().await.map_err(|e| format!("拉取订阅链接失败: {e}"))?;
 
     if !resp.status().is_success() {
         return Err(format!("订阅服务器返回错误状态: {}", resp.status()));
     }
 
-    resp.text()
-        .await
-        .map_err(|e| format!("读取订阅内容失败: {e}"))
+    resp.text().await.map_err(|e| format!("读取订阅内容失败: {e}"))
 }
 
 fn now_iso() -> String {

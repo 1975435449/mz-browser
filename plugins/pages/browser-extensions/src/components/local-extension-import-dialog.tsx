@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { open as openFileDialog } from '@tauri-apps/plugin-dialog';
 import { FolderOpen, Plus, Upload, X } from 'lucide-react';
@@ -27,15 +27,11 @@ export function LocalExtensionImportDialog({
   onSubmit,
 }: LocalExtensionImportDialogProps) {
   const { t } = useTranslation('extensions');
-  const [mode, setMode] = useState<ImportMode>(defaultMode);
+  const [selectedMode, setSelectedMode] = useState<ImportMode | null>(null);
   const [crxPath, setCrxPath] = useState('');
   const [storeUrl, setStoreUrl] = useState('');
 
-  useEffect(() => {
-    if (open) {
-      setMode(defaultMode);
-    }
-  }, [defaultMode, open]);
+  const mode = selectedMode ?? defaultMode;
 
   const canSubmit = useMemo(() => {
     if (importing) {
@@ -46,7 +42,7 @@ export function LocalExtensionImportDialog({
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen) {
-      setMode(defaultMode);
+      setSelectedMode(null);
       setCrxPath('');
       setStoreUrl('');
     }
@@ -91,7 +87,7 @@ export function LocalExtensionImportDialog({
       contentPadding="p-5"
     >
       <div className="space-y-4">
-        <Tabs value={mode} onValueChange={(value) => setMode(value as ImportMode)}>
+        <Tabs value={mode} onValueChange={(value) => setSelectedMode(value as ImportMode)}>
           <TabsList className="h-9 bg-secondary w-full grid grid-cols-2">
             <TabsTrigger value="file" className="text-xs">
               {t('dialog.localImport.mode.file')}

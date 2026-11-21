@@ -20,7 +20,6 @@ import { useProxyStats } from './hooks/use-proxy-stats';
 import { useSearchPagination } from './hooks/use-search-pagination';
 import { useProxyHandlers } from './hooks/use-proxy-handlers';
 import { useProxySelection } from './hooks/use-proxy-selection';
-import { selectAndReadProxyFile, type ImportProxyItem } from './utils/import-export';
 import type { Proxy } from './types';
 import { ITEMS_PER_PAGE } from './constants';
 import { getLocalMihomoProxies, updateLocalMihomoProxy } from './mihomo/api';
@@ -63,7 +62,6 @@ const ProxyCenterPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const mihomoRunning = useMihomoRuntimeStore((state) => state.running);
-  const mihomoAttached = useMihomoRuntimeStore((state) => state.attached);
 
   // 搜索和分页
   const {
@@ -213,25 +211,6 @@ const ProxyCenterPage: React.FC = () => {
   const handleExport = () => {
     setExportDialogOpen(true);
   };
-
-  const handleOpenMihomo = useCallback(async () => {
-    if (!mihomoRunning) {
-      return;
-    }
-
-    await useMihomoRuntimeStore.getState().refresh();
-    const { running, attached } = useMihomoRuntimeStore.getState();
-    if (!running) {
-      return;
-    }
-
-    if (attached) {
-      navigate('/proxy/mihomo');
-      return;
-    }
-
-    setMihomoDialogOpen(true);
-  }, [mihomoRunning, navigate]);
 
   // 计算要导出的代理列表
   const proxiesToExport =

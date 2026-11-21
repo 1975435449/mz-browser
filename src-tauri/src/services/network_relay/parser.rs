@@ -378,8 +378,10 @@ fn parse_ss_link(link: &str) -> Option<RelayNode> {
     let (main, fragment) = split_fragment(rest);
     let (main, _query) = split_query(main);
 
-    let (cipher, password, server, port) = if let Some((userinfo, host_port)) = main.split_once('@') {
-        let decoded_info = decode_base64_flexible(userinfo).unwrap_or_else(|| percent_decode(userinfo));
+    let (cipher, password, server, port) = if let Some((userinfo, host_port)) = main.split_once('@')
+    {
+        let decoded_info =
+            decode_base64_flexible(userinfo).unwrap_or_else(|| percent_decode(userinfo));
         let (cipher, password) = decoded_info.split_once(':')?;
         let (server, port) = split_host_port(host_port)?;
         (cipher.to_string(), password.to_string(), server, port)
@@ -417,9 +419,7 @@ fn parse_ss_link(link: &str) -> Option<RelayNode> {
 }
 
 fn parse_hysteria2_link(link: &str) -> Option<RelayNode> {
-    let rest = link
-        .split_once("://")
-        .map(|(_, r)| r)?;
+    let rest = link.split_once("://").map(|(_, r)| r)?;
     let (main, fragment) = split_fragment(rest);
     let (authority, query) = split_query(main);
     let (password, host_port) = authority.split_once('@')?;
@@ -620,17 +620,68 @@ fn from_hex(byte: u8) -> Option<u8> {
 pub fn infer_country_code(name: &str) -> Option<String> {
     let upper = name.to_uppercase();
     let rules: &[(&[&str], &str)] = &[
-        (&["香港", "HONG KONG", "HONGKONG", " HK", "HK-", "HK_", "🇭🇰"], "HK"),
+        (
+            &["香港", "HONG KONG", "HONGKONG", " HK", "HK-", "HK_", "🇭🇰"],
+            "HK",
+        ),
         (&["台湾", "台灣", "TAIWAN", " TW", "TW-", "TW_", "🇹🇼"], "TW"),
-        (&["日本", "JAPAN", "TOKYO", "OSAKA", " JP", "JP-", "JP_", "🇯🇵"], "JP"),
+        (
+            &["日本", "JAPAN", "TOKYO", "OSAKA", " JP", "JP-", "JP_", "🇯🇵"],
+            "JP",
+        ),
         (&["新加坡", "SINGAPORE", " SG", "SG-", "SG_", "🇸🇬"], "SG"),
-        (&["美国", "美國", "UNITED STATES", "USA", "LOS ANGELES", "SAN JOSE", " US", "US-", "US_", "🇺🇸"], "US"),
-        (&["韩国", "韓國", "KOREA", "SEOUL", " KR", "KR-", "KR_", "🇰🇷"], "KR"),
-        (&["英国", "英國", "UNITED KINGDOM", "LONDON", " UK", "GB", "🇬🇧"], "GB"),
-        (&["德国", "德國", "GERMANY", "FRANKFURT", " DE", "DE-", "🇩🇪"], "DE"),
-        (&["法国", "法國", "FRANCE", "PARIS", " FR", "FR-", "🇫🇷"], "FR"),
+        (
+            &[
+                "美国",
+                "美國",
+                "UNITED STATES",
+                "USA",
+                "LOS ANGELES",
+                "SAN JOSE",
+                " US",
+                "US-",
+                "US_",
+                "🇺🇸",
+            ],
+            "US",
+        ),
+        (
+            &["韩国", "韓國", "KOREA", "SEOUL", " KR", "KR-", "KR_", "🇰🇷"],
+            "KR",
+        ),
+        (
+            &[
+                "英国",
+                "英國",
+                "UNITED KINGDOM",
+                "LONDON",
+                " UK",
+                "GB",
+                "🇬🇧",
+            ],
+            "GB",
+        ),
+        (
+            &["德国", "德國", "GERMANY", "FRANKFURT", " DE", "DE-", "🇩🇪"],
+            "DE",
+        ),
+        (
+            &["法国", "法國", "FRANCE", "PARIS", " FR", "FR-", "🇫🇷"],
+            "FR",
+        ),
         (&["加拿大", "CANADA", " CA", "CA-", "🇨🇦"], "CA"),
-        (&["澳大利亚", "澳洲", "AUSTRALIA", "SYDNEY", " AU", "AU-", "🇦🇺"], "AU"),
+        (
+            &[
+                "澳大利亚",
+                "澳洲",
+                "AUSTRALIA",
+                "SYDNEY",
+                " AU",
+                "AU-",
+                "🇦🇺",
+            ],
+            "AU",
+        ),
         (&["荷兰", "荷蘭", "NETHERLANDS", " NL", "NL-", "🇳🇱"], "NL"),
         (&["俄罗斯", "俄羅斯", "RUSSIA", " RU", "RU-", "🇷🇺"], "RU"),
         (&["印度", "INDIA", " IN", "IN-", "🇮🇳"], "IN"),
@@ -649,7 +700,9 @@ pub fn infer_country_code(name: &str) -> Option<String> {
 
     // 兜底：匹配开头的两位国家码，如 "HK 01"、"US-02"
     let trimmed = upper.trim();
-    for code in ["HK", "TW", "JP", "SG", "US", "KR", "GB", "UK", "DE", "FR", "CA", "AU", "NL"] {
+    for code in [
+        "HK", "TW", "JP", "SG", "US", "KR", "GB", "UK", "DE", "FR", "CA", "AU", "NL",
+    ] {
         if let Some(rest) = trimmed.strip_prefix(code) {
             if rest.is_empty() || !rest.chars().next().unwrap_or('A').is_ascii_alphabetic() {
                 return Some(if code == "UK" { "GB" } else { code }.to_string());

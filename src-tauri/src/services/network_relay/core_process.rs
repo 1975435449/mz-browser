@@ -71,8 +71,8 @@ impl ManagedMihomoCore {
     }
 
     pub async fn status(&self, custom_path: Option<&str>) -> RelayCoreStatus {
-        let core_path = Self::resolve_core_path(custom_path)
-            .unwrap_or_else(|_| PathBuf::from("mihomo.exe"));
+        let core_path =
+            Self::resolve_core_path(custom_path).unwrap_or_else(|_| PathBuf::from("mihomo.exe"));
         let installed = core_path.is_file();
 
         let mut guard = self.process.lock().await;
@@ -126,7 +126,8 @@ impl ManagedMihomoCore {
     ) -> Result<RelayCoreStatus, String> {
         let core_path = Self::resolve_core_path(custom_path)?;
         if !core_path.is_file() {
-            let msg = "尚未安装内置中转内核，请先点击「一键安装内核」或手动选择 mihomo.exe".to_string();
+            let msg =
+                "尚未安装内置中转内核，请先点击「一键安装内核」或手动选择 mihomo.exe".to_string();
             *self.last_error.lock().await = Some(msg.clone());
             return Err(msg);
         }
@@ -169,12 +170,24 @@ impl ManagedMihomoCore {
             if let Err(err) = reload_via_api(controller_port, &config_path).await {
                 log::warn!("reload managed mihomo failed, restarting: {err}");
                 self.stop().await;
-                self.spawn_process(&core_path, &relay_dir, &config_path, mixed_port, controller_port)
-                    .await?;
+                self.spawn_process(
+                    &core_path,
+                    &relay_dir,
+                    &config_path,
+                    mixed_port,
+                    controller_port,
+                )
+                .await?;
             }
         } else {
-            self.spawn_process(&core_path, &relay_dir, &config_path, mixed_port, controller_port)
-                .await?;
+            self.spawn_process(
+                &core_path,
+                &relay_dir,
+                &config_path,
+                mixed_port,
+                controller_port,
+            )
+            .await?;
         }
 
         if let Some(node_id) = selected_node_id {
@@ -339,9 +352,7 @@ impl ManagedMihomoCore {
             .map_err(|e| format!("创建下载客户端失败: {e}"))?;
 
         // 获取最新 release 信息（依次尝试直连与镜像）
-        let release_urls = [
-            "https://api.github.com/repos/MetaCubeX/mihomo/releases/latest",
-        ];
+        let release_urls = ["https://api.github.com/repos/MetaCubeX/mihomo/releases/latest"];
 
         let mut download_url: Option<String> = None;
         for api_url in release_urls {
@@ -412,7 +423,10 @@ fn build_managed_config_yaml(
         YamlValue::String("mixed-port".into()),
         YamlValue::Number(serde_yaml::Number::from(mixed_port)),
     );
-    root.insert(YamlValue::String("allow-lan".into()), YamlValue::Bool(false));
+    root.insert(
+        YamlValue::String("allow-lan".into()),
+        YamlValue::Bool(false),
+    );
     root.insert(
         YamlValue::String("bind-address".into()),
         YamlValue::String("127.0.0.1".into()),
@@ -549,7 +563,10 @@ fn pick_available_port(start: u16) -> Option<u16> {
 fn pick_release_asset_url(release: &JsonValue) -> Option<String> {
     let assets = release.get("assets")?.as_array()?;
     let target_patterns: &[&str] = if cfg!(target_os = "windows") {
-        &["mihomo-windows-amd64-compatible-v", "mihomo-windows-amd64-v"]
+        &[
+            "mihomo-windows-amd64-compatible-v",
+            "mihomo-windows-amd64-v",
+        ]
     } else if cfg!(target_os = "macos") {
         if cfg!(target_arch = "aarch64") {
             &["mihomo-darwin-arm64-v"]
@@ -585,8 +602,8 @@ fn default_fallback_download_url() -> String {
 
 fn extract_mihomo_binary(archive_bytes: &[u8], target_path: &Path) -> Result<(), String> {
     let cursor = Cursor::new(archive_bytes);
-    let mut zip = zip::ZipArchive::new(cursor)
-        .map_err(|e| format!("解压 Mihomo 压缩包失败: {e}"))?;
+    let mut zip =
+        zip::ZipArchive::new(cursor).map_err(|e| format!("解压 Mihomo 压缩包失败: {e}"))?;
 
     for i in 0..zip.len() {
         let mut entry = zip.by_index(i).map_err(|e| e.to_string())?;
@@ -599,18 +616,13 @@ fn extract_mihomo_binary(archive_bytes: &[u8], target_path: &Path) -> Result<(),
 
         if is_binary {
             let mut out = Vec::new();
-            entry
-                .read_to_end(&mut out)
-                .map_err(|e| format!("读取解压文件失败: {e}"))?;
-            std::fs::write(target_path, out)
-                .map_err(|e| format!("保存内置内核失败: {e}"))?;
+            entry.read_to_end(&mut out).map_err(|e| format!("读取解压文件失败: {e}"))?;
+            std::fs::write(target_path, out).map_err(|e| format!("保存内置内核失败: {e}"))?;
             #[cfg(unix)]
             {
                 use std::os::unix::fs::PermissionsExt;
-                let _ = std::fs::set_permissions(
-                    target_path,
-                    std::fs::Permissions::from_mode(0o755),
-                );
+                let _ =
+                    std::fs::set_permissions(target_path, std::fs::Permissions::from_mode(0o755));
             }
             return Ok(());
         }
