@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { open as openFileDialog } from '@tauri-apps/plugin-dialog';
 import { FolderOpen, Plus, Upload, X } from 'lucide-react';
@@ -13,6 +13,7 @@ type ImportMode = 'file' | 'storeUrl';
 
 interface LocalExtensionImportDialogProps {
   open: boolean;
+  defaultMode?: ImportMode;
   importing: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (payload: { mode: ImportMode; crxPath?: string; storeUrl?: string }) => Promise<void>;
@@ -20,14 +21,21 @@ interface LocalExtensionImportDialogProps {
 
 export function LocalExtensionImportDialog({
   open,
+  defaultMode = 'file',
   importing,
   onOpenChange,
   onSubmit,
 }: LocalExtensionImportDialogProps) {
   const { t } = useTranslation('extensions');
-  const [mode, setMode] = useState<ImportMode>('file');
+  const [mode, setMode] = useState<ImportMode>(defaultMode);
   const [crxPath, setCrxPath] = useState('');
   const [storeUrl, setStoreUrl] = useState('');
+
+  useEffect(() => {
+    if (open) {
+      setMode(defaultMode);
+    }
+  }, [defaultMode, open]);
 
   const canSubmit = useMemo(() => {
     if (importing) {
@@ -38,7 +46,7 @@ export function LocalExtensionImportDialog({
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen) {
-      setMode('file');
+      setMode(defaultMode);
       setCrxPath('');
       setStoreUrl('');
     }
@@ -48,7 +56,7 @@ export function LocalExtensionImportDialog({
   const handlePickCrx = async () => {
     const selected = await openFileDialog({
       multiple: false,
-      filters: [{ name: 'Chrome Extension', extensions: ['crx'] }],
+      filters: [{ name: 'Chrome Extension (.crx / .zip)', extensions: ['crx', 'zip'] }],
     });
 
     if (!selected || Array.isArray(selected)) {

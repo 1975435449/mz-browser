@@ -13,7 +13,7 @@ import { ProxyCreateDialog } from './components/proxy-create-dialog';
 import { ProxyEditDialog } from './components/proxy-edit-dialog';
 import { ProxyDeleteDialog } from './components/proxy-delete-dialog';
 import { ProxyBatchDeleteDialog } from './components/proxy-batch-delete-dialog';
-import { ProxyImportDrawer } from './components/proxy-import-drawer';
+import { ProxyBatchImportDialog } from './components/proxy-batch-import-dialog';
 import { ProxyExportDialog } from './components/proxy-export-dialog';
 import { useProxies } from './hooks/use-proxies';
 import { useProxyStats } from './hooks/use-proxy-stats';
@@ -27,13 +27,16 @@ import { getLocalMihomoProxies, updateLocalMihomoProxy } from './mihomo/api';
 import { MihomoConnectDialog } from './mihomo/mihomo-connect-dialog';
 import { MihomoPage } from './mihomo/mihomo-page';
 import type { MihomoLocalProxy } from './mihomo/types';
+import { NetworkConfigPage } from './network/network-config-page';
 
 const LOCAL_MIHOMO_CORE_ERROR = 'mihomo-core-unavailable';
 const LOCAL_MIHOMO_NOT_CONFIGURED_ERROR = 'mihomo-not-configured';
 const LOCAL_MIHOMO_NOT_CONNECTED_ERROR = '当前未连接 Mihomo，请先完成连接配置';
 
-function parseProxyMode(search: string): 'remote' | 'local' {
-  return new URLSearchParams(search).get('mode') === 'local' ? 'local' : 'remote';
+function parseProxyMode(search: string): 'remote' | 'network' {
+  const mode = new URLSearchParams(search).get('mode');
+  if (mode === 'network') return 'network';
+  return 'remote';
 }
 
 function extractErrorMessage(error: unknown, fallback: string): string {
@@ -72,7 +75,9 @@ const ProxyCenterPage: React.FC = () => {
     handlePageChange,
   } = useSearchPagination();
 
-  const [proxyMode, setProxyMode] = useState<'remote' | 'local'>(() => parseProxyMode(location.search));
+  const [proxyMode, setProxyMode] = useState<'remote' | 'network'>(() =>
+    parseProxyMode(location.search)
+  );
 
   // 数据获取
   const {
@@ -118,9 +123,8 @@ const ProxyCenterPage: React.FC = () => {
     onRefresh: refresh,
   });
 
-  // 导入抽屉状态
-  const [importDrawerOpen, setImportDrawerOpen] = useState(false);
-  const [importItems, setImportItems] = useState<ImportProxyItem[]>([]);
+  // 批量导入对话框状态
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   // 导出对话框状态
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
@@ -176,9 +180,10 @@ const ProxyCenterPage: React.FC = () => {
     localSelection.clearSelection();
   }, [clearSelection, handleProxyTypeChange, localSelection]);
 
-  const handleModeChange = useCallback((mode: 'remote' | 'local') => {
+  const handleModeChange = useCallback((mode: 'remote' | 'network') => {
     setProxyMode(mode);
-    navigate(mode === 'local' ? '/proxy?mode=local' : '/proxy', { replace: true });
+    const nextPath = mode === 'network' ? '/proxy?mode=network' : '/proxy';
+    navigate(nextPath, { replace: true });
     clearSelection();
     localSelection.clearSelection();
   }, [clearSelection, localSelection, navigate]);
@@ -234,13 +239,9 @@ const ProxyCenterPage: React.FC = () => {
         ? allProxies.filter((p) => handlers.selection.selectedIds.has(p.uuid))
         : allProxies;
 
-  // 处理导入：选择文件后打开抽屉（支持 CSV 和 JSON）
-  const handleImport = async () => {
-    const items = await selectAndReadProxyFile();
-    if (items && items.length > 0) {
-      setImportItems(items);
-      setImportDrawerOpen(true);
-    }
+  // 打开三步批量导入对话框（支持粘贴文本与文件导入）
+  const handleImport = () => {
+    setImportDialogOpen(true);
   };
 
   const activeProxies = proxyMode === 'remote' ? allProxies : filteredLocalProxies;
@@ -377,81 +378,87 @@ const ProxyCenterPage: React.FC = () => {
       <ProxyHeader
         mode={proxyMode}
         searchValue={searchQuery}
-        mihomoAttached={mihomoAttached}
         onModeChange={handleModeChange}
         onSearchChange={handleSearchChangeWithClearSelection}
-        onOpenMihomo={() => void handleOpenMihomo()}
         onCreateNew={handlers.handleCreateProxy}
         onImport={handleImport}
         onExport={handleExport}
       >
-        <ProxyStats
-          total={activeTotal}
-          healthy={activeStats.healthy}
-          unreachable={activeStats.unreachable}
-          selectedCount={
-            proxyMode === 'remote'
-              ? handlers.selection.selectedIds.size
-              : localSelection.selectedIds.size
-          }
-          onTestSelected={
-            proxyMode === 'remote' ? handleBatchTestWrapper : handleLocalBatchTestWrapper
-          }
-        />
+        {proxyMode !== 'network' && (
+          <ProxyStats
+            total={activeTotal}
+            healthy={activeStats.healthy}
+            unreachable={activeStats.unreachable}
+            selectedCount={
+              proxyMode === 'remote'
+                ? handlers.selection.selectedIds.size
+                : localSelection.selectedIds.size
+            }
+            onTestSelected={
+              proxyMode === 'remote' ? handleBatchTestWrapper : handleLocalBatchTestWrapper
+            }
+          />
+        )}
       </ProxyHeader>
 
-      {proxyMode === 'remote' && activeError && (
-        <div className="px-6 py-2 text-xs text-destructive">代理列表加载失败：{activeError}</div>
-      )}
+      {proxyMode === 'network' ? (
+        <NetworkConfigPage />
+      ) : (
+        <>
+          {proxyMode === 'remote' && activeError && (
+            <div className="px-6 py-2 text-xs text-destructive">代理列表加载失败：{activeError}</div>
+          )}
 
-      <ProxyTable
-        proxies={activeProxies}
-        proxyTypeFilter={proxyType}
-        onProxyTypeFilterChange={handleProxyTypeChangeWithClearSelection}
-        selectedIds={
-          proxyMode === 'remote' ? handlers.selection.selectedIds : localSelection.selectedIds
-        }
-        testingIds={testingProxies}
-        onSelect={proxyMode === 'remote' ? handlers.selection.select : localSelection.select}
-        onSelectAll={
-          proxyMode === 'remote'
-            ? (selected) => handlers.selection.selectAll(allProxies, selected)
-            : (selected) => localSelection.selectAll(filteredLocalProxies, selected)
-        }
-        onTest={proxyMode === 'remote' ? handleTestProxyWrapper : handleLocalTestProxyWrapper}
-        onEdit={proxyMode === 'remote' ? handlers.handleEditProxy : undefined}
-        onDelete={proxyMode === 'remote' ? handlers.handleDeleteProxy : undefined}
-        loading={activeLoading}
-        emptyStateTitle={proxyMode === 'local' ? localEmptyStateTitle : undefined}
-        emptyStateDescription={proxyMode === 'local' ? localEmptyStateDescription : undefined}
-        emptyStateVariant={proxyMode === 'local' && activeError ? 'warning' : 'default'}
-      />
+          <ProxyTable
+            proxies={activeProxies}
+            proxyTypeFilter={proxyType}
+            onProxyTypeFilterChange={handleProxyTypeChangeWithClearSelection}
+            selectedIds={
+              proxyMode === 'remote' ? handlers.selection.selectedIds : localSelection.selectedIds
+            }
+            testingIds={testingProxies}
+            onSelect={proxyMode === 'remote' ? handlers.selection.select : localSelection.select}
+            onSelectAll={
+              proxyMode === 'remote'
+                ? (selected) => handlers.selection.selectAll(allProxies, selected)
+                : (selected) => localSelection.selectAll(filteredLocalProxies, selected)
+            }
+            onTest={proxyMode === 'remote' ? handleTestProxyWrapper : handleLocalTestProxyWrapper}
+            onEdit={proxyMode === 'remote' ? handlers.handleEditProxy : undefined}
+            onDelete={proxyMode === 'remote' ? handlers.handleDeleteProxy : undefined}
+            loading={activeLoading}
+            emptyStateTitle={proxyMode === 'local' ? localEmptyStateTitle : undefined}
+            emptyStateDescription={proxyMode === 'local' ? localEmptyStateDescription : undefined}
+            emptyStateVariant={proxyMode === 'local' && activeError ? 'warning' : 'default'}
+          />
 
-      {proxyMode === 'remote' && (
-        <ProxyPagination
-          currentPage={currentPage}
-          totalPages={activeTotalPages}
-          onPageChange={handlePageChangeWithClearSelection}
-        />
-      )}
+          {proxyMode === 'remote' && (
+            <ProxyPagination
+              currentPage={currentPage}
+              totalPages={activeTotalPages}
+              onPageChange={handlePageChangeWithClearSelection}
+            />
+          )}
 
-      {(proxyMode === 'remote' || localSelection.selectedIds.size > 0) && (
-        <ProxyBatchActions
-          selectedCount={
-            proxyMode === 'remote'
-              ? handlers.selection.selectedIds.size
-              : localSelection.selectedIds.size
-          }
-          onClear={
-            proxyMode === 'remote'
-              ? handlers.selection.clearSelection
-              : localSelection.clearSelection
-          }
-          onTestSelected={
-            proxyMode === 'remote' ? handleBatchTestWrapper : handleLocalBatchTestWrapper
-          }
-          onDelete={proxyMode === 'remote' ? handlers.handleBatchDelete : undefined}
-        />
+          {(proxyMode === 'remote' || localSelection.selectedIds.size > 0) && (
+            <ProxyBatchActions
+              selectedCount={
+                proxyMode === 'remote'
+                  ? handlers.selection.selectedIds.size
+                  : localSelection.selectedIds.size
+              }
+              onClear={
+                proxyMode === 'remote'
+                  ? handlers.selection.clearSelection
+                  : localSelection.clearSelection
+              }
+              onTestSelected={
+                proxyMode === 'remote' ? handleBatchTestWrapper : handleLocalBatchTestWrapper
+              }
+              onDelete={proxyMode === 'remote' ? handlers.handleBatchDelete : undefined}
+            />
+          )}
+        </>
       )}
 
       {/* 创建代理对话框 */}
@@ -491,11 +498,10 @@ const ProxyCenterPage: React.FC = () => {
         onConfirm={handlers.handleConfirmBatchDelete}
       />
 
-      {/* 导入代理抽屉 */}
-      <ProxyImportDrawer
-        open={importDrawerOpen}
-        items={importItems}
-        onOpenChange={setImportDrawerOpen}
+      {/* 批量导入代理对话框 */}
+      <ProxyBatchImportDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
         onComplete={refresh}
       />
 
