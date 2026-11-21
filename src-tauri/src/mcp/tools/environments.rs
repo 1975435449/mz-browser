@@ -27,6 +27,7 @@ pub fn routes() -> Vec<ToolRoute<McpServer>> {
         .with_async_tool::<StopEnvironmentTool>()
         .with_async_tool::<BatchStartEnvironmentsTool>()
         .with_async_tool::<BatchStopEnvironmentsTool>()
+        .with_async_tool::<BatchCreateEnvironmentsTool>()
         .with_async_tool::<GetEnvironmentStatusTool>()
         .with_async_tool::<GetEnvironmentCdpEndpointTool>()
         .into_iter()
@@ -137,6 +138,7 @@ pub(crate) struct BatchStartEnvironmentsTool;
 pub(crate) struct BatchStopEnvironmentsTool;
 pub(crate) struct GetEnvironmentStatusTool;
 pub(crate) struct GetEnvironmentCdpEndpointTool;
+pub(crate) struct BatchCreateEnvironmentsTool;
 
 impl ToolBase for ListEnvironmentsTool {
     type Parameter = ListEnvironmentsInput;
@@ -502,4 +504,125 @@ fn require_env_uuids(values: Vec<String>) -> Result<Vec<String>, McpToolError> {
 
 fn normalize_non_empty(value: String) -> String {
     value.trim().to_string()
+}
+
+/// 一次最多创建的环境数，和新建页的数量选择器一致
+pub(crate) const MAX_BATCH_CREATE: u32 = 25;
+
+#[derive(Debug, Clone, Default, Deserialize, JsonSchema)]
+pub struct BatchCreateEnvironmentsInput {
+    /// How many environments to create, 1 to 25. Each one gets its own randomly drawn device fingerprint
+    /// (GPU, cores, memory, screen, fonts), so the environments of one batch do not share a fingerprint.
+    pub count: u32,
+    /// Name prefix. With more than one environment the names become prefix_1, prefix_2, ...
+    pub name_prefix: Option<String>,
+    pub group_uuid: Option<String>,
+    pub tag_uuids: Option<Vec<String>>,
+    /// Proxies assigned in order, one per environment.
+    pub proxy_uuids: Option<Vec<String>>,
+    /// Create even if there are fewer proxies than environments; the extra environments get no proxy.
+    /// Without it such a request is refused.
+    #[serde(default)]
+    pub allow_fewer_proxies: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct BatchCreatedEnvironment {
+    pub uuid: String,
+    pub name: String,
+    pub proxy_uuid: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct BatchCreateEnvironmentsOutput {
+    pub items: Vec<BatchCreatedEnvironment>,
+}
+
+fn validate_batch_create(input: &BatchCreateEnvironmentsInput) -> Result<(), McpToolError> {
+    if input.count == 0 || input.count > MAX_BATCH_CREATE {
+        return Err(McpToolError::invalid_params(format!(
+            "count must be from 1 to {MAX_BATCH_CREATE}"
+        )));
+    }
+    let proxies = input.proxy_uuids.as_ref().map_or(0, Vec::len) as u32;
+    if proxies > 0 && proxies < input.count && !input.allow_fewer_proxies {
+        return Err(McpToolError::invalid_params(format!(
+            "Only {proxies} proxies for {} environments; {} would have no proxy. Pass allow_fewer_proxies=true to create them anyway, or provide more proxies.",
+            input.count,
+            input.count - proxies
+        )));
+    }
+    Ok(())
+}
+
+impl ToolBase for BatchCreateEnvironmentsTool {
+    type Parameter = BatchCreateEnvironmentsInput;
+    type Output = BatchCreateEnvironmentsOutput;
+    type Error = McpToolError;
+
+    fn name() -> Cow<'static, str> {
+        "mz_batch_create_environments".into()
+    }
+
+    fn description() -> Option<Cow<'static, str>> {
+        Some("Create up to 25 environments at once with default settings. Each environment gets its own random device fingerprint; proxies are assigned in order, one per environment.".into())
+    }
+}
+
+impl AsyncTool<McpServer> for BatchCreateEnvironmentsTool {
+    async fn invoke(
+        service: &McpServer,
+        param: Self::Parameter,
+    ) -> Result<Self::Output, Self::Error> {
+        service.require_manage().await?;
+        validate_batch_create(&param)?;
+        // 设备指纹在前端生成（设备样本库、字体、UA），所以交给主窗口创建
+        let reply = crate::mcp::rpa_bridge::call(
+            "createEnvironments",
+            serde_json::json!({
+                "count": param.count,
+                "namePrefix": param.name_prefix,
+                "groupUuid": param.group_uuid,
+                "tagUuids": param.tag_uuids,
+                "proxyUuids": param.proxy_uuids,
+                "allowFewerProxies": param.allow_fewer_proxies,
+            }),
+        )
+        .await?;
+        serde_json::from_value(reply)
+            .map_err(|error| McpToolError::internal(format!("Unexpected reply from the app: {error}")))
+    }
+}
+
+#[cfg(test)]
+mod batch_create_tests {
+    use super::*;
+
+    fn input(count: u32, proxies: usize, allow: bool) -> BatchCreateEnvironmentsInput {
+        BatchCreateEnvironmentsInput {
+            count,
+            proxy_uuids: (proxies > 0).then(|| (0..proxies).map(|i| format!("p{i}")).collect()),
+            allow_fewer_proxies: allow,
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn count_must_be_within_the_batch_limit() {
+        assert!(validate_batch_create(&input(0, 0, false)).is_err());
+        assert!(validate_batch_create(&input(26, 0, false)).is_err());
+        assert!(validate_batch_create(&input(1, 0, false)).is_ok());
+        assert!(validate_batch_create(&input(25, 0, false)).is_ok());
+    }
+
+    #[test]
+    fn fewer_proxies_than_environments_needs_explicit_consent() {
+        let refused = validate_batch_create(&input(5, 2, false)).unwrap_err();
+        assert!(matches!(refused, McpToolError::InvalidParams(ref m) if m.contains("3 would have no proxy")));
+        assert!(validate_batch_create(&input(5, 2, true)).is_ok());
+        // 没选代理、代理够用都不算缺
+        assert!(validate_batch_create(&input(5, 0, false)).is_ok());
+        assert!(validate_batch_create(&input(5, 5, false)).is_ok());
+        assert!(validate_batch_create(&input(5, 7, false)).is_ok());
+    }
 }

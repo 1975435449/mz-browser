@@ -13,7 +13,7 @@ use serde_json::{Value, json};
 use tokio::net::TcpStream;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async, tungstenite::Message};
 
-use super::cdp::{MAX_SNAPSHOT_NODES, authorized_url, code, public_url, truncate};
+use super::cdp::{MAX_SNAPSHOT_NODES, authorized_url, child_frame_allowed, code, public_url, truncate};
 use super::cdp_act::MAX_TYPED_CHARS;
 use super::error::McpToolError;
 
@@ -245,12 +245,12 @@ async fn top_contexts(page: &mut BidiPage) -> Result<Vec<Context>, McpToolError>
         .collect())
 }
 
-/// 页面和它所有的 iframe 都必须是 http(s) 页面
+/// iframe 必须是 http(s) 页面，或者 about:blank / about:srcdoc / blob: / data:（规则见 cdp::child_frame_allowed）
 fn assert_frames(children: &[Value], origins: &[String]) -> Result<(), McpToolError> {
     for child in children {
         let url = child.get("url").and_then(Value::as_str).unwrap_or("");
-        if !authorized_url(url, origins) {
-            return Err(upstream(code::FRAME_NOT_AUTHORIZED));
+        if !child_frame_allowed(url, origins) {
+            return Err(McpToolError::forbidden(code::FRAME_NOT_AUTHORIZED));
         }
         if let Some(grandchildren) = child.get("children").and_then(Value::as_array) {
             assert_frames(grandchildren, origins)?;
@@ -264,7 +264,7 @@ async fn authorized_page(page: &mut BidiPage, origins: &[String], page_id: &str)
         .await?
         .into_iter()
         .find(|context| context.id == page_id && authorized_url(&context.url, origins))
-        .ok_or_else(|| upstream(code::PAGE_NOT_AUTHORIZED))?;
+        .ok_or_else(|| McpToolError::forbidden(code::PAGE_NOT_AUTHORIZED))?;
     assert_frames(&context.children, origins)?;
     Ok(context)
 }

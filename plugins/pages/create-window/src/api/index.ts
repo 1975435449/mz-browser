@@ -411,8 +411,12 @@ export async function batchCreateEnvironments(
     throw new Error(result.message || '批量创建环境失败');
   }
 
-  // 后端返回的是 CreateEnvironmentResponse 数组
-  return (result.data?.data || result.data || []) as CreateEnvironmentResponse[];
+  // 后端 environments/batch-create 返回的是新环境 UUID 的数组（字符串），统一转成 { uuid }；
+  // 以前当成对象数组直接用，uuid 一直是 undefined（本地代理绑定、HTTP 批量创建都受影响）
+  const raw = (result.data?.data || result.data || []) as unknown[];
+  return raw.map((item) =>
+    typeof item === 'string' ? { uuid: item } : (item as CreateEnvironmentResponse)
+  );
 }
 
 /**

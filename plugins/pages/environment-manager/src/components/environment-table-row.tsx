@@ -175,7 +175,10 @@ function ProxyCellContent({
 }) {
   if (environment.proxy) {
     const { proxy } = environment;
-    const flagCode = proxy.country_code || proxy.country;
+    // 有两位国家代码就显示成标签；只有国家全名时放在城市后面，不塞进标签里
+    const countryName = proxy.country?.trim() ?? '';
+    const flagCode = proxy.country_code?.trim() || (/^[A-Za-z]{2}$/.test(countryName) ? countryName : '');
+    const location = [proxy.city?.trim(), flagCode ? '' : countryName].filter(Boolean).join(', ');
     const isLocalProxy = proxy.source === 'local';
     return (
       <Tooltip>
@@ -194,7 +197,10 @@ function ProxyCellContent({
         <TooltipContent>
           <div className="flex items-center gap-2">
             {flagCode && (
-              <span className="rounded bg-muted px-1 font-mono text-[10px] uppercase">{flagCode}</span>
+              // 提示框是深底浅字：标签用半透明浅底、跟随提示框的文字颜色，不能用 bg-muted（白底白字看不见）
+              <span className="rounded bg-background/15 px-1 font-mono text-[10px] uppercase text-background">
+                {flagCode}
+              </span>
             )}
             <div className="flex flex-col">
               <span className="font-mono text-xs">
@@ -204,9 +210,7 @@ function ProxyCellContent({
               <span className="text-[10px] text-muted-foreground">
                 {proxy.host}:{proxy.port}
               </span>
-              {proxy.city && (
-                <span className="text-[10px] text-muted-foreground">{proxy.city}</span>
-              )}
+              {location && <span className="text-[10px] text-muted-foreground">{location}</span>}
               {proxy.local_missing && (
                 <span className="text-[10px] text-amber-600">本地代理不可用</span>
               )}

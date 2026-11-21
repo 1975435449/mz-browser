@@ -47,6 +47,7 @@ macro_rules! http_tools {
             tools::environments::StopEnvironmentTool,
             tools::environments::BatchStartEnvironmentsTool,
             tools::environments::BatchStopEnvironmentsTool,
+            tools::environments::BatchCreateEnvironmentsTool,
             tools::environments::GetEnvironmentStatusTool,
             tools::environments::GetEnvironmentCdpEndpointTool,
             tools::environments_extras::BatchGetEnvironmentsTool,

@@ -9,6 +9,7 @@ import {
   Puzzle,
   UserCircle,
   Plus,
+  Layers,
   LayoutList,
 } from 'lucide-react';
 import type { IconType } from 'react-icons'
@@ -19,6 +20,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useTranslation } from 'react-i18next';
 import { getGeneralSettings } from '../../../../services/store/src';
+import { BatchCreateDialog } from '../../../../pages/create-window/src/components/batch-create-dialog';
 
 interface NavItemData {
   label: string;
@@ -428,6 +430,44 @@ const CreateEnvironmentButton: React.FC<CreateEnvironmentButtonProps> = ({ colla
   return buttonContent;
 };
 
+/**
+ * 批量创建环境按钮：在“创建环境”下面，打开批量创建对话框
+ */
+const BatchCreateEnvironmentButton: React.FC<CreateEnvironmentButtonProps> = ({ collapsed }) => {
+  const { t } = useTranslation('appLayout');
+  const [open, setOpen] = useState(false);
+
+  const button = (
+    <button
+      type="button"
+      onClick={() => setOpen(true)}
+      className={`w-full rounded-md border border-primary/40 text-primary transition-colors duration-200 cursor-pointer hover:bg-primary/10 ${collapsed
+        ? 'flex flex-col items-center py-2'
+        : 'flex flex-row items-center justify-center gap-2 px-3 py-2'
+        }`}
+    >
+      <div className={`flex items-center gap-2 ${collapsed ? '' : '-translate-x-1.5'}`}>
+        <Layers className="h-4 w-4" />
+        {!collapsed && <span className="text-[13px] h-5 leading-5">{t('nav.actions.batchCreateEnv')}</span>}
+      </div>
+    </button>
+  );
+
+  return (
+    <>
+      {collapsed ? (
+        <Tooltip>
+          <TooltipTrigger asChild>{button}</TooltipTrigger>
+          <TooltipContent side="right">{t('nav.actions.batchCreateEnv')}</TooltipContent>
+        </Tooltip>
+      ) : (
+        button
+      )}
+      <BatchCreateDialog open={open} onOpenChange={setOpen} />
+    </>
+  );
+};
+
 // 动画时长常量
 const SIDEBAR_ANIMATION_DURATION = 300;
 
@@ -526,6 +566,7 @@ export const AppSidebar: React.FC = () => {
         {/* 顶部导航区域：上边距和左右边距一致（侧栏 px-1 + 这里 mx-1 = 8px） */}
         <div className="mt-2 mb-2 mx-1 space-y-1 flex flex-col shrink-0">
           <CreateEnvironmentButton collapsed={collapsed} />
+          <BatchCreateEnvironmentButton collapsed={collapsed} />
           {collapsed && <div className="mx-3 border-b border-sidebar-border pt-2" />}
         </div>
 
