@@ -50,7 +50,7 @@ async fn attach_authorized(
     let page = pages
         .into_iter()
         .find(|p| p.target_id == page_id)
-        .ok_or_else(|| upstream(code::PAGE_NOT_AUTHORIZED))?;
+        .ok_or_else(|| McpToolError::forbidden(code::PAGE_NOT_AUTHORIZED))?;
     let attached = conn
         .send("Target.attachToTarget", json!({ "targetId": page.target_id, "flatten": true }), None)
         .await?;
@@ -438,7 +438,7 @@ mod tests {
         let (url, log) = fake_kernel(page_replies()).await;
         let mut conn = CdpConnection::connect_validated(&url).await.unwrap();
         let denied = click(&mut conn, &origins(), "B", "1").await;
-        assert!(matches!(denied, Err(McpToolError::Upstream(m)) if m == code::PAGE_NOT_AUTHORIZED));
+        assert!(matches!(denied, Err(McpToolError::Forbidden(m)) if m == code::PAGE_NOT_AUTHORIZED));
         assert!(!methods(&log).iter().any(|m| m.starts_with("Input.") || m == "Target.attachToTarget"));
     }
 

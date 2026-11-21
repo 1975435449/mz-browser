@@ -37,6 +37,7 @@ Data stays on your machine by default. There are no user accounts, no cloud serv
 ### Environments
 
 - Create environments one at a time or in batches, with groups, tags, batch actions, import/export and a recycle bin.
+- Batch creation: click **Batch Create** under **Create Environment** in the sidebar to create up to 25 environments with a name prefix, group and proxies. Every environment draws its own device (GPU, cores, memory, screen, fonts, device name and MAC differ), so a batch does not share one fingerprint. Proxies are assigned in the order you tick them, one per environment, and you are warned first when there are fewer proxies than environments.
 - Configure start URLs, cookies, bound accounts and a proxy per environment.
 - Make an environment the system default browser, so links clicked in other apps open directly in it.
 
@@ -145,6 +146,7 @@ Tools are grouped by permission tier. Tools of a tier that is off are left out o
 | Management | `mz_stop_environment` | `env_uuid` | Stop an environment |
 | Management | `mz_batch_start_environments` | `env_uuids` (array) | Start several environments |
 | Management | `mz_batch_stop_environments` | `env_uuids` (array) | Stop several environments |
+| Management | `mz_batch_create_environments` | `count` (1 to 25), optional `name_prefix`, `group_uuid`, `tag_uuids`, `proxy_uuids`, `allow_fewer_proxies` | Create environments with default settings, each with its own random device fingerprint. Proxies are assigned in order, one per environment; with fewer proxies than environments the call is refused unless `allow_fewer_proxies` is true |
 | Management + full page access | `mz_get_environment_cdp_endpoint` | `env_uuid` | Get the CDP debugging address for Playwright, Puppeteer and similar tools (the environment must be authorized) |
 
 Page actions use real mouse and keyboard events and do not turn on `Runtime.enable`. Apart from `mz_browser_read_field` reading a field's `value` property once, no script runs in the page, so they are harder for sites to detect than Playwright or Puppeteer.

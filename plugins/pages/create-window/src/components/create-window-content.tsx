@@ -7,7 +7,6 @@ import { ScreenHardwareForm } from './screen-hardware-form';
 import { BrowserBehaviorForm } from './browser-behavior-form';
 import { WindowSummary } from './window-summary';
 import { ImportDialog } from './import-dialog';
-import { QuantitySelector } from './quantity-selector';
 import { CreateWindowSelectGroupDialog } from './create-window-select-group-dialog';
 import { CreateWindowSelectTagsDialog } from './create-window-select-tags-dialog';
 import { Button } from '@/components/ui/button';
@@ -113,7 +112,6 @@ export function CreateWindowContent({
     windowConfig,
     createCount,
     isSubmitting,
-    setCreateCount,
     selectedGroupUuid,
     selectedTagUuids,
     setSelectedGroupUuid,
@@ -395,12 +393,7 @@ export function CreateWindowContent({
 
       {/* 主内容区域 */}
       <div className="flex flex-1 overflow-hidden w-5/6 mx-auto">
-        {/* 左侧：创建数量选择器 */}
-        {!isEditMode && (
-          <div className="shrink-0 pt-4 pr-4">
-            <QuantitySelector value={createCount} onChange={setCreateCount} />
-          </div>
-        )}
+        {/* 批量创建在侧边栏的“批量创建环境”里，这里一次只创建一个 */}
 
         {/* 中间：表单区域 */}
         <ScrollArea ref={scrollContainerRef} className="flex-1">

@@ -9,6 +9,7 @@ import { markRpaTaskEdited, rpaExecutionStore, startRpaExecution, stopRpaExecuti
 import { normalizeSteps } from './mcp-steps';
 import { deleteRpaTaskFiles } from './tauri';
 import { validateSteps } from './validate-workflow';
+import { createEnvironmentsForApi } from '../../../create-window/src/utils/batch-create';
 
 type Payload = Record<string, unknown>;
 
@@ -116,6 +117,10 @@ const handlers: Record<string, (payload: Payload) => Promise<unknown>> = {
   },
   async execution({ taskUuid }) {
     return rpaExecutionStore.getState().executions[String(taskUuid)] ?? { status: 'none', environments: [] };
+  },
+  // HTTP 接口的批量创建：指纹生成在前端，所以也经这里处理，每个环境各自生成一台设备
+  async createEnvironments(payload) {
+    return createEnvironmentsForApi(payload);
   },
 };
 

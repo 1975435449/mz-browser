@@ -447,7 +447,18 @@ pub(super) async fn authorized_pages(
         .collect())
 }
 
-/// Every frame in the tree must be a plain web page (and match the optional site list).
+/// 内嵌框架除了普通网页，还可以是 about:blank / about:srcdoc / blob: / data:（还没加载时网址为空）。
+/// 这些框架的内容由外层页面提供（about: 和 blob: 还继承外层页面的来源），没有越权读取的风险；
+/// 广告、统计、验证码、支付控件里大量使用。浏览器内部页、扩展页、本地文件仍然拒绝。
+pub(super) fn child_frame_allowed(url: &str, origins: &[String]) -> bool {
+    if url.is_empty() || authorized_url(url, origins) {
+        return true;
+    }
+    matches!(url, "about:blank" | "about:srcdoc") || url.starts_with("blob:") || url.starts_with("data:")
+}
+
+/// The top frame must be a plain web page (and match the optional site list); child frames may also
+/// be about:blank / about:srcdoc / blob: / data:, but never browser, extension or file pages.
 pub(super) fn assert_frames(tree: &Value, origins: &[String]) -> Result<(), McpToolError> {
     let url = tree
         .get("frame")
@@ -455,10 +466,22 @@ pub(super) fn assert_frames(tree: &Value, origins: &[String]) -> Result<(), McpT
         .and_then(Value::as_str)
         .unwrap_or("");
     if !authorized_url(url, origins) {
-        return Err(err(code::FRAME_NOT_AUTHORIZED));
+        return Err(McpToolError::forbidden(code::FRAME_NOT_AUTHORIZED));
     }
+    assert_child_frames(tree, origins)
+}
+
+fn assert_child_frames(tree: &Value, origins: &[String]) -> Result<(), McpToolError> {
     for child in tree.get("childFrames").and_then(Value::as_array).into_iter().flatten() {
-        assert_frames(child, origins)?;
+        let url = child
+            .get("frame")
+            .and_then(|f| f.get("url"))
+            .and_then(Value::as_str)
+            .unwrap_or("");
+        if !child_frame_allowed(url, origins) {
+            return Err(McpToolError::forbidden(code::FRAME_NOT_AUTHORIZED));
+        }
+        assert_child_frames(child, origins)?;
     }
     Ok(())
 }
@@ -483,7 +506,7 @@ pub async fn snapshot(
     let page = pages
         .iter()
         .find(|p| p.target_id == page_id)
-        .ok_or_else(|| err(code::PAGE_NOT_AUTHORIZED))?;
+        .ok_or_else(|| McpToolError::forbidden(code::PAGE_NOT_AUTHORIZED))?;
     let attached = conn
         .send("Target.attachToTarget", json!({ "targetId": page.target_id, "flatten": true }), None)
         .await?;
@@ -743,7 +766,7 @@ mod tests {
         let url = fake_kernel(vec![("Target.getTargets", targets.clone())]).await;
         let mut conn = CdpConnection::connect_validated(&url).await.unwrap();
         let denied = snapshot(&mut conn, &origins(), "NOPE").await;
-        assert!(matches!(denied, Err(McpToolError::Upstream(m)) if m == code::PAGE_NOT_AUTHORIZED));
+        assert!(matches!(denied, Err(McpToolError::Forbidden(m)) if m == code::PAGE_NOT_AUTHORIZED));
 
         let url = fake_kernel(vec![
             ("Target.getTargets", targets),
@@ -758,7 +781,24 @@ mod tests {
         .await;
         let mut conn = CdpConnection::connect_validated(&url).await.unwrap();
         let denied = snapshot(&mut conn, &origins(), "A").await;
-        assert!(matches!(denied, Err(McpToolError::Upstream(m)) if m == code::FRAME_NOT_AUTHORIZED));
+        assert!(matches!(denied, Err(McpToolError::Forbidden(m)) if m == code::FRAME_NOT_AUTHORIZED));
+    }
+
+    #[test]
+    fn blank_and_inline_child_frames_are_allowed_but_browser_pages_are_not() {
+        let tree = |child: &str| {
+            json!({"frame":{"url":"https://example.com/"},
+                   "childFrames":[{"frame":{"url":"https://example.com/inner"},
+                                   "childFrames":[{"frame":{"url":child}}]}]})
+        };
+        for ok in ["about:blank", "about:srcdoc", "", "blob:https://example.com/1", "data:text/html,hi"] {
+            assert!(assert_frames(&tree(ok), &[]).is_ok(), "{ok}");
+        }
+        for bad in ["chrome://settings", "chrome-extension://abc/x.html", "devtools://devtools", "file:///C:/x"] {
+            assert!(matches!(assert_frames(&tree(bad), &[]), Err(McpToolError::Forbidden(_))), "{bad}");
+        }
+        // 顶层页面仍然必须是普通网页
+        assert!(assert_frames(&json!({"frame":{"url":"about:blank"}}), &[]).is_err());
     }
 
     #[tokio::test]

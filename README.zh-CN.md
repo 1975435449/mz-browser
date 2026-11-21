@@ -37,6 +37,7 @@ MZ指纹浏览器是一款运行在你自己电脑上的桌面软件，用来创
 ### 环境管理
 
 - 单个或批量创建环境，支持分组、标签、批量操作、导入导出和回收站。
+- 批量创建：点侧边栏「创建环境」下面的「批量创建环境」，一次最多 25 个，可设名称前缀、分组和代理。每个环境各自抽一台设备，显卡、核心数、内存、屏幕、字体、设备名和 MAC 都不相同，不会因为指纹相同被关联；代理按勾选顺序一个环境一个，代理比环境少时先提示。
 - 每个环境可配置启动网址、Cookie、绑定账号和代理。
 - 可把某个环境设为系统默认浏览器，其他软件里点击的链接直接在这个环境打开。
 
@@ -145,6 +146,7 @@ MZ指纹浏览器是一款运行在你自己电脑上的桌面软件，用来创
 | 管理 | `mz_stop_environment` | `env_uuid` | 停止环境 |
 | 管理 | `mz_batch_start_environments` | `env_uuids`（数组） | 批量启动 |
 | 管理 | `mz_batch_stop_environments` | `env_uuids`（数组） | 批量停止 |
+| 管理 | `mz_batch_create_environments` | `count`（1 到 25），可选 `name_prefix`、`group_uuid`、`tag_uuids`、`proxy_uuids`、`allow_fewer_proxies` | 用默认设置批量创建环境，每个环境的设备指纹各自随机。代理按顺序一个环境一个；代理比环境少时，不传 `allow_fewer_proxies: true` 会被拒绝 |
 | 管理 + 完全页面访问 | `mz_get_environment_cdp_endpoint` | `env_uuid` | 获取 CDP 调试地址，供 Playwright、Puppeteer 等连接（环境需已授权） |
 
 页面操作用的是真实的鼠标键盘事件，不开启 `Runtime.enable`。除了 `mz_browser_read_field` 读取输入框时会读一次它的 `value` 属性，不在页面里执行任何脚本，比 Playwright、Puppeteer 更难被网站发现。

@@ -47,14 +47,8 @@ export interface UseCreateWindowReturn {
   handleCreateWindow: () => Promise<void>;
 }
 
-/**
- * 新建环境的名称。只创建一个时原样使用输入的名称（没填则叫"窗口"）；
- * 一次创建多个时才加 _1、_2… 序号来区分。
- */
-export function buildEnvironmentName(name: string | undefined, index: number, total: number): string {
-  const base = name?.trim() || '窗口';
-  return total > 1 ? `${base}_${index + 1}` : base;
-}
+export { buildEnvironmentName } from '../utils/batch-create';
+import { buildEnvironmentName } from '../utils/batch-create';
 
 /**
  * 创建窗口 Hook

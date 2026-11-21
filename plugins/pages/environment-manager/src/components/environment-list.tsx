@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from 'react';
+import { ENVIRONMENTS_CHANGED_EVENT } from '@/lib/app-events';
 import { useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { EnvironmentHeader } from './environment-header';
@@ -81,6 +82,13 @@ export function EnvironmentList() {
       setSearchParams(nextParams, { replace: true });
     }
   }, [searchParams, setSearchParams, setFilterGroupId]);
+
+  // 别处（批量创建对话框、HTTP 接口）创建了环境时重新加载列表
+  useEffect(() => {
+    const handleChanged = () => void refresh();
+    window.addEventListener(ENVIRONMENTS_CHANGED_EVENT, handleChanged);
+    return () => window.removeEventListener(ENVIRONMENTS_CHANGED_EVENT, handleChanged);
+  }, [refresh]);
 
   // 计算总页数（基于服务端返回的 total）
   const totalPages = Math.max(1, Math.ceil(total / filtersStore.pageSize));

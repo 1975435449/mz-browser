@@ -26,6 +26,7 @@ export const appLayoutResources = {
       },
       actions: {
         createEnv: '创建环境',
+        batchCreateEnv: '批量创建环境',
       },
       sidebar: {
         expand: '展开侧边栏',
@@ -116,6 +117,7 @@ export const appLayoutResources = {
       },
       actions: {
         createEnv: 'Create Environment',
+        batchCreateEnv: 'Batch Create',
       },
       sidebar: {
         expand: 'Expand Sidebar',
